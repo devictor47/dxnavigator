@@ -7,8 +7,8 @@ services: # Collection of containers that compose the application
 
     environment:
       - NPM_CONFIG_CACHE=/root/.npm
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true # Force vite hot-reload
+      - WATCHPACK_POLLING=true # Force vite hot-reload
 
     volumes:
       # Bind mount:

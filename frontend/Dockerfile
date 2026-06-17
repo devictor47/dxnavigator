@@ -5,7 +5,6 @@ RUN mkdir -p /workspace
 
 WORKDIR /workspace
 
-# Keep npm cache inside container
 ENV NODE_ENV=development
 
 # Expose Vite default port
