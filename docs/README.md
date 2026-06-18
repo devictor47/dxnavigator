@@ -104,3 +104,7 @@ Current milestone:
 ## License
 
 TBD
+
+## Documentation
+
+- [Application Flow](./application-flow.md)
