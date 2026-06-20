@@ -23,5 +23,17 @@ export const resolveText = (text: TranslatableText, locale: Locale): string => {
     return text
   }
 
-  return text[locale] ?? text[defaultLocale]
+  const requestedText = text[locale]?.trim()
+
+  if (requestedText) {
+    return requestedText
+  }
+
+  const fallbackText = text[defaultLocale]?.trim()
+
+  if (fallbackText) {
+    return fallbackText
+  }
+
+  return Object.values(text).find((value) => value.trim().length > 0) ?? ''
 }

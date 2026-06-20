@@ -14,6 +14,9 @@ const { t } = useI18n()
         <RouterLink class="nav-link" to="/private/complaints/chest-pain">
           {{ t('landing.nav.openWorkspace') }}
         </RouterLink>
+        <RouterLink class="nav-link" to="/private/builder">
+          {{ t('builder.nav.builder') }}
+        </RouterLink>
       </div>
     </nav>
 

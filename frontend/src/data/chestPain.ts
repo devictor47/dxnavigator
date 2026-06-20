@@ -105,6 +105,39 @@ const associatedSymptomsField: MultiselectField = {
   defaultValue: [],
 }
 
+const feverField: BooleanField = {
+  key: 'fever',
+  label: {
+    en: 'Fever?',
+    'pt-BR': 'Febre?',
+  },
+  type: 'boolean',
+  defaultValue: false,
+  narrative: {
+    whenTrue: {
+      en: 'fever',
+      'pt-BR': 'febre',
+    },
+  },
+}
+
+const temperatureField: TextField = {
+  key: 'temperature',
+  label: {
+    en: 'Temperature record',
+    'pt-BR': 'Registro de temperatura',
+  },
+  type: 'text',
+  placeholder: {
+    en: 'Example: 38.5 C at home',
+    'pt-BR': 'Ex.: 38,5 C em casa',
+  },
+  displayIf: {
+    fieldKey: 'fever',
+    equals: true,
+  },
+}
+
 const exertionalField: BooleanField = {
   key: 'exertional',
   label: {
@@ -160,6 +193,7 @@ const hpiTemplate = {
     {% assign painModifiers = exertional | compact_append: relievedByRest | compact_append: pleuritic %}
     {% if painModifiers %}Pain is {{ painModifiers | list }}.{% endif %}
     {% if associatedSymptoms %}Associated symptoms include {{ associatedSymptoms | list }}.{% endif %}
+    {% if fever %}Patient reports fever{% if temperature %} with recorded temperature {{ temperature }}{% endif %}.{% endif %}
   `,
   'pt-BR': `
     Paciente refere {% if location %}{{ location }}{% else %}dor toracica{% endif %}{% if onset %} com inicio {{ onset }}{% endif %}.
@@ -167,6 +201,7 @@ const hpiTemplate = {
     {% assign painModifiers = exertional | compact_append: relievedByRest | compact_append: pleuritic %}
     {% if painModifiers %}Dor e {{ painModifiers | list }}.{% endif %}
     {% if associatedSymptoms %}Sintomas associados incluem {{ associatedSymptoms | list }}.{% endif %}
+    {% if fever %}Paciente refere febre{% if temperature %} com temperatura registrada de {{ temperature }}{% endif %}.{% endif %}
   `,
 }
 
@@ -207,7 +242,7 @@ export const chestPainModule: ClinicalWorkflow = {
         en: 'Associated symptoms',
         'pt-BR': 'Sintomas associados',
       },
-      fields: [associatedSymptomsField],
+      fields: [associatedSymptomsField, feverField, temperatureField],
     },
   ],
   redFlags: [

@@ -40,6 +40,14 @@ const generatedHpi = computed(() => session.value.generateHpi(locale.value))
     <aside class="workspace-sidebar">
       <RouterLink class="brand" to="/">DxNavigator</RouterLink>
       <AppPreferences />
+      <nav class="app-section-nav" aria-label="Application sections">
+        <RouterLink class="complaint-option selected" to="/private/complaints/chest-pain">
+          {{ t('builder.nav.workspace') }}
+        </RouterLink>
+        <RouterLink class="complaint-option" to="/private/builder">
+          {{ t('builder.nav.builder') }}
+        </RouterLink>
+      </nav>
       <ComplaintSelector :complaints="workflowLinks" :selected-complaint-id="selectedModule.id" />
     </aside>
 
