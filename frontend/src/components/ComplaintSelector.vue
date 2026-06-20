@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useI18n } from '@/composables/useI18n'
+import { resolveText, type TranslatableText } from '@/i18n/locales'
 
 type ComplaintOption = {
   id: string
-  name: string
+  name: TranslatableText
   to: string
 }
 
@@ -12,7 +13,7 @@ defineProps<{
   selectedComplaintId: string
 }>()
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 </script>
 
 <template>
@@ -30,7 +31,7 @@ const { t } = useI18n()
         :class="{ selected: complaint.id === selectedComplaintId }"
         :to="complaint.to"
       >
-        {{ complaint.name }}
+        {{ resolveText(complaint.name, locale) }}
       </RouterLink>
     </div>
   </section>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import AppPreferences from '@/components/AppPreferences.vue'
@@ -11,9 +11,10 @@ import RedFlagList from '@/components/RedFlagList.vue'
 import WorkupList from '@/components/WorkupList.vue'
 import { useI18n } from '@/composables/useI18n'
 import { clinicalModules, getClinicalModuleById } from '@/data/modules'
-import { createInitialAnswers, type ClinicalWorkflow, type ModuleAnswers } from '@/data/workflow'
+import { createWorkflowSession, type ClinicalWorkflow } from '@/data/workflow'
+import { resolveText, type TranslatableText } from '@/i18n/locales'
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const route = useRoute()
 const workflowLinks = clinicalModules.map((module) => ({
   id: module.id,
@@ -21,23 +22,17 @@ const workflowLinks = clinicalModules.map((module) => ({
   to: `/private/complaints/${module.id}`,
 }))
 
-const answers = reactive<ModuleAnswers>({})
 const selectedModule = computed(() => getClinicalModuleById(route.params.moduleId))
 const isPreviewSticky = ref(true)
+const session = ref(createWorkflowSession(selectedModule.value))
 
-const resetAnswers = (module: ClinicalWorkflow) => {
-  for (const key of Object.keys(answers)) {
-    delete answers[key]
-  }
+watch(selectedModule, (workflow: ClinicalWorkflow) => {
+  session.value = createWorkflowSession(workflow)
+})
 
-  for (const [key, value] of Object.entries(createInitialAnswers(module))) {
-    answers[key] = value
-  }
-}
+const text = (value: TranslatableText): string => resolveText(value, locale.value)
 
-watch(selectedModule, resetAnswers, { immediate: true })
-
-const generatedHpi = computed(() => selectedModule.value.generateHpi(answers))
+const generatedHpi = computed(() => session.value.generateHpi(locale.value))
 </script>
 
 <template>
@@ -51,8 +46,8 @@ const generatedHpi = computed(() => selectedModule.value.generateHpi(answers))
     <section class="workspace-content">
       <header class="complaint-header">
         <p class="eyebrow">{{ t('workspace.eyebrow') }}</p>
-        <h1>{{ selectedModule.title }}</h1>
-        <p>{{ selectedModule.overview }}</p>
+        <h1>{{ text(selectedModule.title) }}</h1>
+        <p>{{ text(selectedModule.overview) }}</p>
       </header>
 
       <div class="clinical-workbench">
@@ -81,7 +76,7 @@ const generatedHpi = computed(() => selectedModule.value.generateHpi(answers))
           </div>
 
           <div class="form-card-scroll">
-            <DynamicClinicalForm :module="selectedModule" :answers="answers" />
+            <DynamicClinicalForm :session="session" />
 
             <div id="clinical-guidance" class="workflow-grid guidance-grid">
               <RedFlagList :red-flags="selectedModule.redFlags" />

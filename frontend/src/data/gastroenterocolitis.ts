@@ -66,6 +66,9 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
           type: 'text',
           placeholder: 'Example: 12 hours, 3 days',
           required: true,
+          narrative: {
+            prefix: 'for',
+          },
         },
         symptomsField,
         stoolFeaturesField,
@@ -80,21 +83,27 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
           label: 'Poor oral intake',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'with poor oral intake',
+          narrative: {
+            whenTrue: 'with poor oral intake',
+          },
         },
         {
           key: 'dehydrationSigns',
           label: 'Signs of dehydration',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'with signs of dehydration',
+          narrative: {
+            whenTrue: 'with signs of dehydration',
+          },
         },
         {
           key: 'severePain',
           label: 'Severe or localized abdominal pain',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'with severe or localized abdominal pain',
+          narrative: {
+            whenTrue: 'with severe or localized abdominal pain',
+          },
         },
       ],
     },
@@ -108,7 +117,9 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
           label: 'Immunocompromised or high-risk host',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'in a high-risk or immunocompromised host',
+          narrative: {
+            whenTrue: 'in a high-risk or immunocompromised host',
+          },
         },
       ],
     },

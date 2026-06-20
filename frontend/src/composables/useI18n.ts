@@ -1,8 +1,10 @@
 import { computed, ref } from 'vue'
 
-export type Locale = 'en' | 'pt-BR'
+import { defaultLocale, isLocale, locales, type Locale } from '@/i18n/locales'
 
 const localeStorageKey = 'dxnavigator-locale'
+
+export { defaultLocale, locales, type Locale }
 
 const messages = {
   en: {
@@ -98,12 +100,12 @@ const messages = {
 
 const getInitialLocale = (): Locale => {
   if (typeof window === 'undefined') {
-    return 'en'
+    return defaultLocale
   }
 
   const storedLocale = window.localStorage.getItem(localeStorageKey)
 
-  return storedLocale === 'pt-BR' ? 'pt-BR' : 'en'
+  return isLocale(storedLocale) ? storedLocale : defaultLocale
 }
 
 const locale = ref<Locale>(getInitialLocale())
@@ -126,7 +128,7 @@ export const useI18n = () => {
 
   return {
     locale,
-    localeLabel: computed(() => (locale.value === 'en' ? 'English' : 'Português')),
+    localeLabel: computed(() => locales[locale.value].label),
     setLocale,
     t,
   }

@@ -108,3 +108,4 @@ TBD
 ## Documentation
 
 - [Application Flow](./application-flow.md)
+- [Architecture Decisions](./architecture_decisions.md)

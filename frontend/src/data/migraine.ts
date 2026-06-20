@@ -66,6 +66,9 @@ export const migraineModule: ClinicalWorkflow = {
           type: 'text',
           placeholder: 'Example: 6 hours, since yesterday, recurrent monthly',
           required: true,
+          narrative: {
+            prefix: 'for',
+          },
         },
         {
           key: 'location',
@@ -90,21 +93,27 @@ export const migraineModule: ClinicalWorkflow = {
           label: 'Thunderclap or sudden maximal onset',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'with sudden maximal onset',
+          narrative: {
+            whenTrue: 'with sudden maximal onset',
+          },
         },
         {
           key: 'neuroDeficit',
           label: 'Neurologic deficit or altered mental status',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'with neurologic deficit or altered mental status',
+          narrative: {
+            whenTrue: 'with neurologic deficit or altered mental status',
+          },
         },
         {
           key: 'feverNeckStiffness',
           label: 'Fever or neck stiffness',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'with fever or neck stiffness',
+          narrative: {
+            whenTrue: 'with fever or neck stiffness',
+          },
         },
         triggerField,
       ],

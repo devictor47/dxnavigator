@@ -53,6 +53,9 @@ export const utiModule: ClinicalWorkflow = {
           type: 'text',
           placeholder: 'Example: 2 days, started this morning',
           required: true,
+          narrative: {
+            prefix: 'for',
+          },
         },
         urinarySymptomsField,
       ],
@@ -66,21 +69,27 @@ export const utiModule: ClinicalWorkflow = {
           label: 'Fever or chills',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'associated with fever or chills',
+          narrative: {
+            whenTrue: 'associated with fever or chills',
+          },
         },
         {
           key: 'flankPain',
           label: 'Flank pain',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'associated with flank pain',
+          narrative: {
+            whenTrue: 'associated with flank pain',
+          },
         },
         {
           key: 'nauseaVomiting',
           label: 'Nausea or vomiting',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'associated with nausea or vomiting',
+          narrative: {
+            whenTrue: 'associated with nausea or vomiting',
+          },
         },
       ],
     },
@@ -94,7 +103,9 @@ export const utiModule: ClinicalWorkflow = {
           label: 'Vaginal discharge or irritation',
           type: 'boolean',
           defaultValue: false,
-          trueNarrative: 'with vaginal discharge or irritation',
+          narrative: {
+            whenTrue: 'with vaginal discharge or irritation',
+          },
         },
       ],
     },

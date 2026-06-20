@@ -1,100 +1,213 @@
 import {
-  getBooleanAnswer,
-  getSelectedNarratives,
-  getTextAnswer,
-  joinNarrativeList,
+  type BooleanField,
   type ClinicalWorkflow,
   type MultiselectField,
+  type TextField,
 } from '@/data/workflow'
+
+const onsetField: TextField = {
+  key: 'onset',
+  label: {
+    en: 'Onset and duration',
+    'pt-BR': 'Inicio e duracao',
+  },
+  type: 'text',
+  placeholder: {
+    en: 'Example: started 2 hours ago, intermittent for 3 days',
+    'pt-BR': 'Ex.: iniciou ha 2 horas, intermitente ha 3 dias',
+  },
+  required: true,
+}
+
+const locationField: TextField = {
+  key: 'location',
+  label: {
+    en: 'Location or quality',
+    'pt-BR': 'Localizacao ou caracteristica',
+  },
+  type: 'text',
+  placeholder: {
+    en: 'Example: retrosternal pressure',
+    'pt-BR': 'Ex.: pressao retroesternal',
+  },
+}
 
 const radiationField: MultiselectField = {
   key: 'radiation',
-  label: 'Radiation',
+  label: {
+    en: 'Radiation',
+    'pt-BR': 'Irradiacao',
+  },
   type: 'multiselect',
-  helperText: 'Select all locations described by the patient.',
+  helperText: {
+    en: 'Select all locations described by the patient.',
+    'pt-BR': 'Selecione todos os locais descritos pelo paciente.',
+  },
   options: [
-    { label: 'Left arm', value: 'left-arm', narrative: 'the left arm' },
-    { label: 'Jaw', value: 'jaw', narrative: 'the jaw' },
-    { label: 'Back', value: 'back', narrative: 'the back' },
-    { label: 'Epigastrium', value: 'epigastrium', narrative: 'the epigastrium' },
+    {
+      label: { en: 'Left arm', 'pt-BR': 'Braco esquerdo' },
+      value: 'left-arm',
+      narrative: { en: 'left arm', 'pt-BR': 'braco esquerdo' },
+    },
+    {
+      label: { en: 'Jaw', 'pt-BR': 'Mandibula' },
+      value: 'jaw',
+      narrative: { en: 'jaw', 'pt-BR': 'mandibula' },
+    },
+    {
+      label: { en: 'Back', 'pt-BR': 'Dorso' },
+      value: 'back',
+      narrative: { en: 'back', 'pt-BR': 'dorso' },
+    },
+    {
+      label: { en: 'Epigastrium', 'pt-BR': 'Epigastrio' },
+      value: 'epigastrium',
+      narrative: { en: 'epigastrium', 'pt-BR': 'epigastrio' },
+    },
   ],
   defaultValue: [],
 }
 
 const associatedSymptomsField: MultiselectField = {
   key: 'associatedSymptoms',
-  label: 'Associated symptoms',
+  label: {
+    en: 'Associated symptoms',
+    'pt-BR': 'Sintomas associados',
+  },
   type: 'multiselect',
   options: [
-    { label: 'Dyspnea', value: 'dyspnea', narrative: 'dyspnea' },
-    { label: 'Diaphoresis', value: 'diaphoresis', narrative: 'diaphoresis' },
-    { label: 'Nausea', value: 'nausea', narrative: 'nausea' },
-    { label: 'Palpitations', value: 'palpitations', narrative: 'palpitations' },
-    { label: 'Syncope', value: 'syncope', narrative: 'syncope' },
+    {
+      label: { en: 'Dyspnea', 'pt-BR': 'Dispneia' },
+      value: 'dyspnea',
+      narrative: { en: 'dyspnea', 'pt-BR': 'dispneia' },
+    },
+    {
+      label: { en: 'Diaphoresis', 'pt-BR': 'Diaforese' },
+      value: 'diaphoresis',
+      narrative: { en: 'diaphoresis', 'pt-BR': 'diaforese' },
+    },
+    {
+      label: { en: 'Nausea', 'pt-BR': 'Nausea' },
+      value: 'nausea',
+      narrative: { en: 'nausea', 'pt-BR': 'nausea' },
+    },
+    {
+      label: { en: 'Palpitations', 'pt-BR': 'Palpitacoes' },
+      value: 'palpitations',
+      narrative: { en: 'palpitations', 'pt-BR': 'palpitacoes' },
+    },
+    {
+      label: { en: 'Syncope', 'pt-BR': 'Sincope' },
+      value: 'syncope',
+      narrative: { en: 'syncope', 'pt-BR': 'sincope' },
+    },
   ],
   defaultValue: [],
 }
 
+const exertionalField: BooleanField = {
+  key: 'exertional',
+  label: {
+    en: 'Triggered by exertion',
+    'pt-BR': 'Desencadeada por esforco',
+  },
+  type: 'boolean',
+  defaultValue: false,
+  narrative: {
+    whenTrue: {
+      en: 'triggered by exertion',
+      'pt-BR': 'desencadeada por esforco',
+    },
+  },
+}
+
+const relievedByRestField: BooleanField = {
+  key: 'relievedByRest',
+  label: {
+    en: 'Improves with rest',
+    'pt-BR': 'Melhora com repouso',
+  },
+  type: 'boolean',
+  defaultValue: false,
+  narrative: {
+    whenTrue: {
+      en: 'relieved by rest',
+      'pt-BR': 'aliviada por repouso',
+    },
+  },
+}
+
+const pleuriticField: BooleanField = {
+  key: 'pleuritic',
+  label: {
+    en: 'Pleuritic component',
+    'pt-BR': 'Componente pleuritico',
+  },
+  type: 'boolean',
+  defaultValue: false,
+  narrative: {
+    whenTrue: {
+      en: 'worse with inspiration',
+      'pt-BR': 'piora com inspiracao',
+    },
+  },
+}
+
+const hpiTemplate = {
+  en: `
+    Patient presents with {% if location %}{{ location }}{% else %}chest pain{% endif %}{% if onset %} beginning {{ onset }}{% endif %}.
+    {% if radiation %}Pain radiates to {{ radiation | list }}.{% endif %}
+    {% assign painModifiers = exertional | compact_append: relievedByRest | compact_append: pleuritic %}
+    {% if painModifiers %}Pain is {{ painModifiers | list }}.{% endif %}
+    {% if associatedSymptoms %}Associated symptoms include {{ associatedSymptoms | list }}.{% endif %}
+  `,
+  'pt-BR': `
+    Paciente refere {% if location %}{{ location }}{% else %}dor toracica{% endif %}{% if onset %} com inicio {{ onset }}{% endif %}.
+    {% if radiation %}Dor irradia para {{ radiation | list }}.{% endif %}
+    {% assign painModifiers = exertional | compact_append: relievedByRest | compact_append: pleuritic %}
+    {% if painModifiers %}Dor e {{ painModifiers | list }}.{% endif %}
+    {% if associatedSymptoms %}Sintomas associados incluem {{ associatedSymptoms | list }}.{% endif %}
+  `,
+}
+
 export const chestPainModule: ClinicalWorkflow = {
   id: 'chest-pain',
-  title: 'Chest Pain',
-  overview:
-    'Capture structured history, generate the HPI in real time, and keep high-risk diagnoses visible during the initial evaluation.',
+  title: {
+    en: 'Chest Pain',
+    'pt-BR': 'Dor toracica',
+  },
+  overview: {
+    en: 'Capture structured history, generate the HPI in real time, and keep high-risk diagnoses visible during the initial evaluation.',
+    'pt-BR': 'Colete a historia estruturada, gere a HMA em tempo real e mantenha diagnosticos de risco visiveis durante a avaliacao inicial.',
+  },
   sections: [
     {
       id: 'pain-characteristics',
-      title: 'Pain characteristics',
-      description: 'Define the core chest pain story before moving into risk and associated symptoms.',
-      fields: [
-        {
-          key: 'onset',
-          label: 'Onset and duration',
-          type: 'text',
-          placeholder: 'Example: started 2 hours ago, intermittent for 3 days',
-          required: true,
-        },
-        {
-          key: 'location',
-          label: 'Location or quality',
-          type: 'text',
-          placeholder: 'Example: retrosternal pressure',
-        },
-        radiationField,
-      ],
+      title: {
+        en: 'Pain characteristics',
+        'pt-BR': 'Caracteristicas da dor',
+      },
+      description: {
+        en: 'Define the core chest pain story before moving into risk and associated symptoms.',
+        'pt-BR': 'Defina a historia central da dor toracica antes de avaliar risco e sintomas associados.',
+      },
+      fields: [onsetField, locationField, radiationField],
     },
     {
       id: 'triggers-relief',
-      title: 'Triggers and relief',
-      fields: [
-        {
-          key: 'exertional',
-          label: 'Triggered by exertion',
-          type: 'boolean',
-          defaultValue: false,
-          trueNarrative: 'triggered by exertion',
-        },
-        {
-          key: 'relievedByRest',
-          label: 'Improves with rest',
-          type: 'boolean',
-          defaultValue: false,
-          trueNarrative: 'relieved by rest',
-        },
-        {
-          key: 'pleuritic',
-          label: 'Pleuritic component',
-          type: 'boolean',
-          defaultValue: false,
-          trueNarrative: 'worse with inspiration',
-        },
-      ],
+      title: {
+        en: 'Triggers and relief',
+        'pt-BR': 'Desencadeantes e alivio',
+      },
+      fields: [exertionalField, relievedByRestField, pleuriticField],
     },
     {
       id: 'associated-symptoms',
-      title: 'Associated symptoms',
-      fields: [
-        associatedSymptomsField,
-      ],
+      title: {
+        en: 'Associated symptoms',
+        'pt-BR': 'Sintomas associados',
+      },
+      fields: [associatedSymptomsField],
     },
   ],
   redFlags: [
@@ -159,27 +272,5 @@ export const chestPainModule: ClinicalWorkflow = {
       description: 'Use clinical probability to guide PE or dissection evaluation.',
     },
   ],
-  generateHpi: (answers) => {
-    const onset = getTextAnswer(answers, 'onset')
-    const location = getTextAnswer(answers, 'location')
-    const radiation = joinNarrativeList(getSelectedNarratives(radiationField, answers))
-    const associatedSymptoms = joinNarrativeList(getSelectedNarratives(associatedSymptomsField, answers))
-
-    const painDescription = location || 'chest pain'
-    const openingSentence = `Patient presents with ${painDescription}${onset ? ` beginning ${onset}` : ''}.`
-
-    const painClauses = [
-      radiation ? `radiates to ${radiation}` : '',
-      getBooleanAnswer(answers, 'exertional') ? 'is triggered by exertion' : '',
-      getBooleanAnswer(answers, 'relievedByRest') ? 'is relieved by rest' : '',
-      getBooleanAnswer(answers, 'pleuritic') ? 'is worse with inspiration' : '',
-    ].filter(Boolean)
-
-    const painSentence = painClauses.length > 0 ? ` Pain ${joinNarrativeList(painClauses)}.` : ''
-    const associatedSentence = associatedSymptoms
-      ? ` Associated symptoms include ${associatedSymptoms}.`
-      : ''
-
-    return `${openingSentence}${painSentence}${associatedSentence}`
-  },
+  hpiTemplate,
 }
