@@ -90,8 +90,12 @@ const createDraftUid = (): string => {
   return uid
 }
 
+const stripAccents = (value: string): string => {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
 const slugify = (value: string): string => {
-  return value
+  return stripAccents(value)
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
@@ -641,22 +645,22 @@ const validationMessages = computed(() => {
 
             <div class="builder-form-grid">
               <label class="builder-field">
-                <span>{{ t('builder.workflowId') }}</span>
-                <input
-                  class="text-input"
-                  type="text"
-                  :value="draft.id"
-                  @input="updateWorkflowId"
-                />
-              </label>
-
-              <label class="builder-field">
                 <span>{{ t('builder.workflowTitle') }}</span>
                 <input
                   class="text-input"
                   type="text"
                   :value="draft.title"
                   @input="updateWorkflowTitle"
+                />
+              </label>
+
+              <label class="builder-field">
+                <span>{{ t('builder.workflowId') }}</span>
+                <input
+                  class="text-input"
+                  type="text"
+                  :value="draft.id"
+                  @input="updateWorkflowId"
                 />
               </label>
 
