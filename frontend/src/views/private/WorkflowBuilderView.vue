@@ -538,7 +538,10 @@ const availableTemplateFields = computed(() =>
     section.fields.map((field) => ({
       key: field.key,
       label: field.label || field.key,
-      token: field.type === 'multiselect' ? `{{ ${field.key} | list }}` : `{{ ${field.key} }}`,
+      token:
+        field.type === 'multiselect'
+          ? `{{ ${field.key} | list: locale }}`
+          : `{{ ${field.key} }}`,
     })),
   ),
 )
@@ -1005,7 +1008,7 @@ const validationMessages = computed(() => {
               <div class="schema-preview">
                 <p>{{ t('builder.advancedTemplateDescription') }}</p>
                 <code v-pre>{% if fever %}Patient reports {{ fever }}.{% endif %}</code>
-                <code v-pre>{{ radiation | list }}</code>
+                <code v-pre>{{ radiation | list: locale }}</code>
               </div>
             </details>
           </section>

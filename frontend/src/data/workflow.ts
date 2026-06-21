@@ -7,6 +7,29 @@ export type ClinicalItem = {
   description?: TranslatableText
 }
 
+export type ClinicalGuide = {
+  title: TranslatableText
+  description?: TranslatableText
+  criteria?: TranslatableText[]
+  actions?: TranslatableText[]
+}
+
+export type SourceFigure = {
+  title: TranslatableText
+  source: TranslatableText
+  citation?: TranslatableText
+  notes?: TranslatableText
+  imageUrl?: string
+  altText?: TranslatableText
+}
+
+export type WorkflowPreset = {
+  id: string
+  title: TranslatableText
+  description?: TranslatableText
+  answers: ModuleAnswers
+}
+
 export type FieldOption = {
   label: TranslatableText
   value: string
@@ -81,6 +104,9 @@ export type ClinicalWorkflow = {
   redFlags: ClinicalItem[]
   differentials: ClinicalItem[]
   workup: ClinicalItem[]
+  quickGuides?: ClinicalGuide[]
+  sourceFigures?: SourceFigure[]
+  presets?: WorkflowPreset[]
   hpiTemplate?: TranslatableText
   // Temporary: module-specific HPI generator.
   // Later this should be replaced by template-based narrative generation.
@@ -215,12 +241,15 @@ export type NarrativeContext = Record<string, string | string[] | null>
 
 const liquid = new Liquid()
 
-liquid.registerFilter('list', (value: unknown) => {
+liquid.registerFilter('list', (value: unknown, locale: Locale = defaultLocale) => {
   if (!Array.isArray(value)) {
     return typeof value === 'string' ? value : ''
   }
 
-  return joinNarrativeList(value.filter((item): item is string => typeof item === 'string'))
+  return joinNarrativeList(
+    value.filter((item): item is string => typeof item === 'string'),
+    locale,
+  )
 })
 
 liquid.registerFilter('compact_append', (value: unknown, nextValue: unknown) => {
@@ -259,6 +288,8 @@ export const createNarrativeContext = (
     }
   }
 
+  context.locale = locale
+
   return context
 }
 
@@ -279,7 +310,7 @@ export const renderWorkflowHpi = (
   return workflow.generateHpi?.(answers) ?? ''
 }
 
-export const joinNarrativeList = (items: string[]): string => {
+export const joinNarrativeList = (items: string[], locale: Locale = defaultLocale): string => {
   if (items.length === 0) {
     return ''
   }
@@ -289,8 +320,13 @@ export const joinNarrativeList = (items: string[]): string => {
   }
 
   const lastItem = items[items.length - 1]!
+  const connector = locale === 'pt-BR' ? 'e' : 'and'
 
-  return `${items.slice(0, -1).join(', ')}, and ${lastItem}`
+  if (items.length === 2) {
+    return `${items[0]} ${connector} ${lastItem}`
+  }
+
+  return `${items.slice(0, -1).join(', ')}, ${connector} ${lastItem}`
 }
 
 export const isFieldVisible = (field: ModuleField, answers: ModuleAnswers): boolean => {

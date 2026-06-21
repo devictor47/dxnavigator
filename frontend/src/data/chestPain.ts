@@ -189,18 +189,18 @@ const pleuriticField: BooleanField = {
 const hpiTemplate = {
   en: `
     Patient presents with {% if location %}{{ location }}{% else %}chest pain{% endif %}{% if onset %} beginning {{ onset }}{% endif %}.
-    {% if radiation %}Pain radiates to {{ radiation | list }}.{% endif %}
+    {% if radiation %}Pain radiates to {{ radiation | list: locale }}.{% endif %}
     {% assign painModifiers = exertional | compact_append: relievedByRest | compact_append: pleuritic %}
-    {% if painModifiers %}Pain is {{ painModifiers | list }}.{% endif %}
-    {% if associatedSymptoms %}Associated symptoms include {{ associatedSymptoms | list }}.{% endif %}
+    {% if painModifiers %}Pain is {{ painModifiers | list: locale }}.{% endif %}
+    {% if associatedSymptoms %}Associated symptoms include {{ associatedSymptoms | list: locale }}.{% endif %}
     {% if fever %}Patient reports fever{% if temperature %} with recorded temperature {{ temperature }}{% endif %}.{% endif %}
   `,
   'pt-BR': `
     Paciente refere {% if location %}{{ location }}{% else %}dor toracica{% endif %}{% if onset %} com inicio {{ onset }}{% endif %}.
-    {% if radiation %}Dor irradia para {{ radiation | list }}.{% endif %}
+    {% if radiation %}Dor irradia para {{ radiation | list: locale }}.{% endif %}
     {% assign painModifiers = exertional | compact_append: relievedByRest | compact_append: pleuritic %}
-    {% if painModifiers %}Dor e {{ painModifiers | list }}.{% endif %}
-    {% if associatedSymptoms %}Sintomas associados incluem {{ associatedSymptoms | list }}.{% endif %}
+    {% if painModifiers %}Dor e {{ painModifiers | list: locale }}.{% endif %}
+    {% if associatedSymptoms %}Sintomas associados incluem {{ associatedSymptoms | list: locale }}.{% endif %}
     {% if fever %}Paciente refere febre{% if temperature %} com temperatura registrada de {{ temperature }}{% endif %}.{% endif %}
   `,
 }

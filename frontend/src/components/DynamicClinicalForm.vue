@@ -13,6 +13,7 @@ import { resolveText, type TranslatableText } from '@/i18n/locales'
 
 defineProps<{
   session: WorkflowSession
+  highlightedFieldKeys?: string[]
 }>()
 
 const { locale, t } = useI18n()
@@ -71,6 +72,10 @@ const updateMultiselect = (
           v-show="isFieldVisible(field, session.answers)"
           :key="field.key"
           class="field-control"
+          :class="[
+            `${field.type}-field`,
+            { 'preset-highlighted-field': highlightedFieldKeys?.includes(field.key) },
+          ]"
           :data-field-key="field.key"
         >
           <legend :class="{ 'visually-hidden': field.type === 'boolean' }">

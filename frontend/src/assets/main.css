@@ -157,8 +157,10 @@ p {
   width: fit-content;
   min-height: 44px;
   padding: 0 18px;
+  border: 0;
   background: var(--color-primary);
   color: var(--color-white);
+  cursor: pointer;
 }
 
 .landing-hero {
@@ -406,6 +408,51 @@ p {
   scroll-behavior: smooth;
 }
 
+.workflow-presets {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-muted);
+}
+
+.preset-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.preset-button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  min-height: 92px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.preset-button:hover,
+.preset-button.selected {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-popover);
+  transform: translateY(-1px);
+}
+
+.preset-button span {
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
 .help-control {
   position: relative;
   flex: 0 0 auto;
@@ -462,6 +509,7 @@ p {
 
 .field-list {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
 }
 
@@ -481,6 +529,20 @@ p {
 
 .field-control legend span {
   color: var(--color-danger);
+}
+
+.field-control.text-field,
+.field-control.select-field,
+.field-control.multiselect-field {
+  grid-column: 1 / -1;
+}
+
+.preset-highlighted-field {
+  padding: 10px;
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 3px var(--color-primary-focus);
 }
 
 .visually-hidden {
@@ -541,7 +603,7 @@ p {
 }
 
 .single-check {
-  width: fit-content;
+  width: 100%;
 }
 
 .generated-note {
@@ -560,6 +622,112 @@ p {
 .guidance-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   scroll-margin-top: 18px;
+}
+
+.guidance-library {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.guidance-library-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.guidance-library-panel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.guide-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-muted);
+}
+
+.guide-card h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.guide-card p,
+.guide-card small {
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.guide-list-group {
+  display: grid;
+  gap: 6px;
+}
+
+.guide-list-group ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 20px;
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.source-figure-card img {
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(15 23 42 / 0.56);
+}
+
+.confirmation-dialog {
+  display: grid;
+  gap: 18px;
+  width: min(100%, 520px);
+  padding: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-popover);
+}
+
+.preset-confirmation-target {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-muted);
+}
+
+.preset-confirmation-target span {
+  color: var(--color-text-muted);
+  line-height: 1.45;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .builder-layout {
@@ -948,6 +1116,7 @@ p {
   .workspace-page,
   .workflow-grid,
   .guidance-grid,
+  .guidance-library-grid,
   .builder-layout {
     grid-template-columns: 1fr;
   }

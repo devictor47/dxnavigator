@@ -3,19 +3,27 @@ import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import AppPreferences from '@/components/AppPreferences.vue'
+import ClinicalGuidanceLibrary from '@/components/ClinicalGuidanceLibrary.vue'
 import ComplaintSelector from '@/components/ComplaintSelector.vue'
 import DifferentialList from '@/components/DifferentialList.vue'
 import DynamicClinicalForm from '@/components/DynamicClinicalForm.vue'
 import HpiPreview from '@/components/HpiPreview.vue'
 import RedFlagList from '@/components/RedFlagList.vue'
+import WorkflowPresetSelector from '@/components/WorkflowPresetSelector.vue'
 import WorkupList from '@/components/WorkupList.vue'
 import { useI18n } from '@/composables/useI18n'
 import { clinicalModules, getClinicalModuleById } from '@/data/modules'
-import { createWorkflowSession, type ClinicalWorkflow } from '@/data/workflow'
+import {
+  createWorkflowSession,
+  type ClinicalWorkflow,
+  type ModuleAnswerValue,
+  type WorkflowPreset,
+} from '@/data/workflow'
 import { resolveText, type TranslatableText } from '@/i18n/locales'
 
 const { locale, t } = useI18n()
 const route = useRoute()
+const presetConfirmationStorageKey = 'dxnavigator-skip-preset-confirmation'
 const workflowLinks = clinicalModules.map((module) => ({
   id: module.id,
   name: module.title,
@@ -25,14 +33,87 @@ const workflowLinks = clinicalModules.map((module) => ({
 const selectedModule = computed(() => getClinicalModuleById(route.params.moduleId))
 const isPreviewSticky = ref(true)
 const session = ref(createWorkflowSession(selectedModule.value))
+const pendingPreset = ref<WorkflowPreset | null>(null)
+const activePresetId = ref<string>()
+const highlightedPresetFieldKeys = ref<string[]>([])
+const rememberPresetConfirmation = ref(false)
+
+const shouldSkipPresetConfirmation = (): boolean => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return window.localStorage.getItem(presetConfirmationStorageKey) === 'true'
+}
 
 watch(selectedModule, (workflow: ClinicalWorkflow) => {
   session.value = createWorkflowSession(workflow)
+  pendingPreset.value = null
+  activePresetId.value = undefined
+  highlightedPresetFieldKeys.value = []
 })
 
 const text = (value: TranslatableText): string => resolveText(value, locale.value)
 
 const generatedHpi = computed(() => session.value.generateHpi(locale.value))
+
+const copyAnswerValue = (value: ModuleAnswerValue): ModuleAnswerValue => {
+  return Array.isArray(value) ? [...value] : value
+}
+
+const shouldHighlightPresetValue = (value: ModuleAnswerValue): boolean => {
+  if (Array.isArray(value)) {
+    return value.length > 0
+  }
+
+  if (typeof value === 'string') {
+    return value.trim().length > 0
+  }
+
+  return value
+}
+
+const applyPreset = (preset: WorkflowPreset): void => {
+  const nextSession = createWorkflowSession(selectedModule.value)
+
+  for (const [fieldKey, value] of Object.entries(preset.answers)) {
+    nextSession.setAnswer(fieldKey, copyAnswerValue(value))
+  }
+
+  session.value = nextSession
+  activePresetId.value = preset.id
+  highlightedPresetFieldKeys.value = Object.entries(preset.answers)
+    .filter(([, value]) => shouldHighlightPresetValue(value))
+    .map(([fieldKey]) => fieldKey)
+}
+
+const requestPreset = (preset: WorkflowPreset): void => {
+  if (shouldSkipPresetConfirmation()) {
+    applyPreset(preset)
+    return
+  }
+
+  rememberPresetConfirmation.value = false
+  pendingPreset.value = preset
+}
+
+const confirmPreset = (): void => {
+  if (!pendingPreset.value) {
+    return
+  }
+
+  if (rememberPresetConfirmation.value && typeof window !== 'undefined') {
+    window.localStorage.setItem(presetConfirmationStorageKey, 'true')
+  }
+
+  applyPreset(pendingPreset.value)
+  pendingPreset.value = null
+}
+
+const cancelPreset = (): void => {
+  pendingPreset.value = null
+  rememberPresetConfirmation.value = false
+}
 </script>
 
 <template>
@@ -84,16 +165,67 @@ const generatedHpi = computed(() => session.value.generateHpi(locale.value))
           </div>
 
           <div class="form-card-scroll">
-            <DynamicClinicalForm :session="session" />
+            <WorkflowPresetSelector
+              :presets="selectedModule.presets"
+              :active-preset-id="activePresetId"
+              @apply="requestPreset"
+            />
+
+            <DynamicClinicalForm
+              :session="session"
+              :highlighted-field-keys="highlightedPresetFieldKeys"
+            />
 
             <div id="clinical-guidance" class="workflow-grid guidance-grid">
               <RedFlagList :red-flags="selectedModule.redFlags" />
               <DifferentialList :differentials="selectedModule.differentials" />
               <WorkupList :workup="selectedModule.workup" />
             </div>
+
+            <ClinicalGuidanceLibrary
+              :quick-guides="selectedModule.quickGuides"
+              :source-figures="selectedModule.sourceFigures"
+            />
           </div>
         </section>
       </div>
     </section>
+
+    <div v-if="pendingPreset" class="modal-backdrop" role="presentation" @click="cancelPreset">
+      <section
+        class="confirmation-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="preset-confirmation-title"
+        @click.stop
+      >
+        <div class="section-heading">
+          <p class="eyebrow">{{ t('presets.confirmEyebrow') }}</p>
+          <h2 id="preset-confirmation-title">{{ t('presets.confirmTitle') }}</h2>
+          <p class="section-description">
+            {{ t('presets.confirmDescription') }}
+          </p>
+        </div>
+
+        <div class="preset-confirmation-target">
+          <strong>{{ text(pendingPreset.title) }}</strong>
+          <span v-if="pendingPreset.description">{{ text(pendingPreset.description) }}</span>
+        </div>
+
+        <label class="check-option single-check">
+          <input v-model="rememberPresetConfirmation" type="checkbox" />
+          <span>{{ t('presets.rememberDecision') }}</span>
+        </label>
+
+        <div class="dialog-actions">
+          <button class="secondary-action compact-action" type="button" @click="cancelPreset">
+            {{ t('common.cancel') }}
+          </button>
+          <button class="primary-action compact-action" type="button" @click="confirmPreset">
+            {{ t('presets.replaceForm') }}
+          </button>
+        </div>
+      </section>
+    </div>
   </main>
 </template>

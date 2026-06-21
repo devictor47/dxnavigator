@@ -1,6 +1,7 @@
 import { chestPainModule } from '@/data/chestPain'
 import { gastroenterocolitisModule } from '@/data/gastroenterocolitis'
 import { migraineModule } from '@/data/migraine'
+import { sindromeGripalModule } from '@/data/sindromeGripal'
 import { utiModule } from '@/data/uti'
 import type { ClinicalWorkflow } from '@/data/workflow'
 
@@ -9,6 +10,7 @@ export const clinicalModules = [
   utiModule,
   gastroenterocolitisModule,
   migraineModule,
+  sindromeGripalModule,
 ] satisfies ClinicalWorkflow[]
 
 export const defaultClinicalWorkflow = chestPainModule
