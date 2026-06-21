@@ -16,6 +16,7 @@ import { clinicalModules, getClinicalModuleById } from '@/data/modules'
 import {
   createWorkflowSession,
   type ClinicalWorkflow,
+  type ModuleAnswers,
   type ModuleAnswerValue,
   type WorkflowPreset,
 } from '@/data/workflow'
@@ -35,7 +36,7 @@ const isPreviewSticky = ref(true)
 const session = ref(createWorkflowSession(selectedModule.value))
 const pendingPreset = ref<WorkflowPreset | null>(null)
 const activePresetId = ref<string>()
-const highlightedPresetFieldKeys = ref<string[]>([])
+const highlightedPresetAnswers = ref<ModuleAnswers>({})
 const rememberPresetConfirmation = ref(false)
 
 const shouldSkipPresetConfirmation = (): boolean => {
@@ -50,7 +51,7 @@ watch(selectedModule, (workflow: ClinicalWorkflow) => {
   session.value = createWorkflowSession(workflow)
   pendingPreset.value = null
   activePresetId.value = undefined
-  highlightedPresetFieldKeys.value = []
+  highlightedPresetAnswers.value = {}
 })
 
 const text = (value: TranslatableText): string => resolveText(value, locale.value)
@@ -82,9 +83,9 @@ const applyPreset = (preset: WorkflowPreset): void => {
 
   session.value = nextSession
   activePresetId.value = preset.id
-  highlightedPresetFieldKeys.value = Object.entries(preset.answers)
-    .filter(([, value]) => shouldHighlightPresetValue(value))
-    .map(([fieldKey]) => fieldKey)
+  highlightedPresetAnswers.value = Object.fromEntries(
+    Object.entries(preset.answers).filter(([, value]) => shouldHighlightPresetValue(value)),
+  )
 }
 
 const requestPreset = (preset: WorkflowPreset): void => {
@@ -173,7 +174,7 @@ const cancelPreset = (): void => {
 
             <DynamicClinicalForm
               :session="session"
-              :highlighted-field-keys="highlightedPresetFieldKeys"
+              :highlighted-answers="highlightedPresetAnswers"
             />
 
             <div id="clinical-guidance" class="workflow-grid guidance-grid">

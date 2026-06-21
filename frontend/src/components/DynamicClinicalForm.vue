@@ -3,6 +3,7 @@ import { useI18n } from '@/composables/useI18n'
 import {
   isFieldVisible,
   type BooleanField,
+  type ModuleAnswers,
   type ModuleAnswerValue,
   type MultiselectField,
   type SelectField,
@@ -13,7 +14,7 @@ import { resolveText, type TranslatableText } from '@/i18n/locales'
 
 defineProps<{
   session: WorkflowSession
-  highlightedFieldKeys?: string[]
+  highlightedAnswers?: ModuleAnswers
 }>()
 
 const { locale, t } = useI18n()
@@ -26,6 +27,30 @@ const optionalText = (value?: TranslatableText): string => {
 
 const getMultiselectValue = (value: ModuleAnswerValue | undefined): string[] => {
   return Array.isArray(value) ? value : []
+}
+
+const isHighlightedBoolean = (
+  highlightedAnswers: ModuleAnswers | undefined,
+  field: BooleanField,
+): boolean => highlightedAnswers?.[field.key] === true
+
+const isHighlightedTextLike = (
+  highlightedAnswers: ModuleAnswers | undefined,
+  field: TextField | SelectField,
+): boolean => {
+  const value = highlightedAnswers?.[field.key]
+
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+const isHighlightedOption = (
+  highlightedAnswers: ModuleAnswers | undefined,
+  field: MultiselectField,
+  optionValue: string,
+): boolean => {
+  const value = highlightedAnswers?.[field.key]
+
+  return Array.isArray(value) && value.includes(optionValue)
 }
 
 const updateText = (
@@ -72,10 +97,7 @@ const updateMultiselect = (
           v-show="isFieldVisible(field, session.answers)"
           :key="field.key"
           class="field-control"
-          :class="[
-            `${field.type}-field`,
-            { 'preset-highlighted-field': highlightedFieldKeys?.includes(field.key) },
-          ]"
+          :class="`${field.type}-field`"
           :data-field-key="field.key"
         >
           <legend :class="{ 'visually-hidden': field.type === 'boolean' }">
@@ -89,6 +111,7 @@ const updateMultiselect = (
           <input
             v-if="field.type === 'text'"
             class="text-input"
+            :class="{ 'preset-highlighted-control': isHighlightedTextLike(highlightedAnswers, field) }"
             type="text"
             :data-field-input="field.key"
             :placeholder="optionalText(field.placeholder)"
@@ -96,7 +119,11 @@ const updateMultiselect = (
             @input="updateText(session, field, $event)"
           />
 
-          <label v-else-if="field.type === 'boolean'" class="check-option single-check">
+          <label
+            v-else-if="field.type === 'boolean'"
+            class="check-option single-check"
+            :class="{ 'preset-highlighted-control': isHighlightedBoolean(highlightedAnswers, field) }"
+          >
             <input
               type="checkbox"
               :data-field-input="field.key"
@@ -107,7 +134,12 @@ const updateMultiselect = (
           </label>
 
           <div v-else-if="field.type === 'multiselect'" class="option-grid">
-            <label v-for="option in field.options" :key="option.value" class="check-option">
+            <label
+              v-for="option in field.options"
+              :key="option.value"
+              class="check-option"
+              :class="{ 'preset-highlighted-control': isHighlightedOption(highlightedAnswers, field, option.value) }"
+            >
               <input
                 type="checkbox"
                 :data-field-input="field.key"
@@ -122,6 +154,7 @@ const updateMultiselect = (
           <select
             v-else-if="field.type === 'select'"
             class="text-input"
+            :class="{ 'preset-highlighted-control': isHighlightedTextLike(highlightedAnswers, field) }"
             :data-field-input="field.key"
             :value="session.getAnswer(field.key)"
             @change="updateText(session, field, $event)"
