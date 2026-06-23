@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, reactive, ref } from 'vue'
 
-import AppPreferences from '@/components/AppPreferences.vue'
+import PrivateWorkspaceShell from '@/components/PrivateWorkspaceShell.vue'
 import { useI18n } from '@/composables/useI18n'
 import type { ModuleField } from '@/data/workflow'
 import { locales, type Locale, type LocalizedText } from '@/i18n/locales'
@@ -616,21 +616,7 @@ const validationMessages = computed(() => {
 </script>
 
 <template>
-  <main class="workspace-page builder-page">
-    <aside class="workspace-sidebar">
-      <RouterLink class="brand" to="/">DxNavigator</RouterLink>
-      <AppPreferences />
-
-      <nav class="app-section-nav" aria-label="Application sections">
-        <RouterLink class="complaint-option" to="/private/complaints/chest-pain">
-          {{ t('builder.nav.workspace') }}
-        </RouterLink>
-        <RouterLink class="complaint-option selected" to="/private/builder">
-          {{ t('builder.nav.builder') }}
-        </RouterLink>
-      </nav>
-    </aside>
-
+  <PrivateWorkspaceShell active-section="builder">
     <section class="workspace-content">
       <header class="complaint-header">
         <p class="eyebrow">{{ t('builder.eyebrow') }}</p>
@@ -1073,5 +1059,5 @@ const validationMessages = computed(() => {
         </aside>
       </div>
     </section>
-  </main>
+  </PrivateWorkspaceShell>
 </template>

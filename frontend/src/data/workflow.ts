@@ -17,6 +17,7 @@ export type ClinicalGuide = {
 export type SourceFigure = {
   title: TranslatableText
   source: TranslatableText
+  sourceUrl?: string
   citation?: TranslatableText
   notes?: TranslatableText
   imageUrl?: string

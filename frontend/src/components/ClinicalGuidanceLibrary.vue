@@ -63,9 +63,13 @@ const { locale, t } = useI18n()
           {{ t('guidance.noSourceFigures') }}
         </p>
 
-        <article
+        <component
+          :is="figure.sourceUrl ? 'a' : 'article'"
           v-for="figure in sourceFigures"
           :key="resolveText(figure.title, locale)"
+          :href="figure.sourceUrl"
+          :target="figure.sourceUrl ? '_blank' : undefined"
+          :rel="figure.sourceUrl ? 'noreferrer' : undefined"
           class="guide-card source-figure-card"
         >
           <img
@@ -77,7 +81,10 @@ const { locale, t } = useI18n()
           <p>{{ resolveText(figure.source, locale) }}</p>
           <p v-if="figure.notes">{{ resolveText(figure.notes, locale) }}</p>
           <small v-if="figure.citation">{{ resolveText(figure.citation, locale) }}</small>
-        </article>
+          <strong v-if="figure.sourceUrl" class="source-link-label">
+            {{ t('guidance.openSource') }}
+          </strong>
+        </component>
       </section>
     </div>
   </section>

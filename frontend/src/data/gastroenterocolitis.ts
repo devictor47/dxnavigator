@@ -607,6 +607,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
         en: 'American Family Physician, 2022',
         'pt-BR': 'American Family Physician, 2022',
       },
+      sourceUrl: 'https://www.aafp.org/afp/2022/0700/acute-diarrhea',
       citation: {
         en: 'Meisenheimer ES, Epstein C, Thiel D. Acute Diarrhea in Adults. American Family Physician. 2022;106(1):72-80.',
         'pt-BR': 'Meisenheimer ES, Epstein C, Thiel D. Acute Diarrhea in Adults. American Family Physician. 2022;106(1):72-80.',
@@ -625,6 +626,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
         en: "Yamada's Textbook of Gastroenterology, 7th edition, 2022",
         'pt-BR': "Yamada's Textbook of Gastroenterology, 7ª edição, 2022",
       },
+      sourceUrl: 'https://onlinelibrary.wiley.com/doi/10.1002/9781119600206.ch34',
       citation: {
         en: "Hecht GA, Trieu JA. Approach to the patient with diarrhea. Yamada's Textbook of Gastroenterology. 7th ed. 2022.",
         'pt-BR': "Hecht GA, Trieu JA. Approach to the patient with diarrhea. Yamada's Textbook of Gastroenterology. 7ª ed. 2022.",

@@ -372,12 +372,14 @@ Workflow guidance supports two additional content types:
 - `quickGuides`: curated, structured summaries for quick consultation.
 - `sourceFigures`: references to source algorithms, flowcharts, or figures.
 
-Source figure entries may include metadata and an optional `imageUrl`. The public app does not automatically bundle local clinical-data images.
+Source figure entries may include metadata, an optional `imageUrl`, and a `sourceUrl` linking to the original source. The public app does not automatically bundle local clinical-data images.
 
 ### Rules
 
 - Quick guides are authored as workflow metadata.
 - Source figures should cite their source.
+- When building workflows from `clinical-data`, check for an `img-links.txt` file in the workflow folder and map image names to their original source URLs.
+- Source figure cards should link to the original source when a URL is available.
 - Local research material can live outside the public repo when needed.
 - Source figures should support "see it from the source" without replacing clinical judgment.
 

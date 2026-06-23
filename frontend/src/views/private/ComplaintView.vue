@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
-import AppPreferences from '@/components/AppPreferences.vue'
 import ClinicalGuidanceLibrary from '@/components/ClinicalGuidanceLibrary.vue'
-import ComplaintSelector from '@/components/ComplaintSelector.vue'
 import DifferentialList from '@/components/DifferentialList.vue'
 import DynamicClinicalForm from '@/components/DynamicClinicalForm.vue'
 import HpiPreview from '@/components/HpiPreview.vue'
+import PrivateWorkspaceShell from '@/components/PrivateWorkspaceShell.vue'
 import RedFlagList from '@/components/RedFlagList.vue'
 import WorkflowPresetSelector from '@/components/WorkflowPresetSelector.vue'
 import WorkupList from '@/components/WorkupList.vue'
 import { useI18n } from '@/composables/useI18n'
-import { clinicalModules, getClinicalModuleById } from '@/data/modules'
+import { getClinicalModuleById } from '@/data/modules'
 import {
   createWorkflowSession,
   type ClinicalWorkflow,
@@ -25,19 +24,16 @@ import { resolveText, type TranslatableText } from '@/i18n/locales'
 const { locale, t } = useI18n()
 const route = useRoute()
 const presetConfirmationStorageKey = 'dxnavigator-skip-preset-confirmation'
-const workflowLinks = clinicalModules.map((module) => ({
-  id: module.id,
-  name: module.title,
-  to: `/private/complaints/${module.id}`,
-}))
 
 const selectedModule = computed(() => getClinicalModuleById(route.params.moduleId))
-const isPreviewSticky = ref(true)
+const isPreviewSticky = ref(false)
 const session = ref(createWorkflowSession(selectedModule.value))
 const pendingPreset = ref<WorkflowPreset | null>(null)
 const activePresetId = ref<string>()
 const highlightedPresetAnswers = ref<ModuleAnswers>({})
 const rememberPresetConfirmation = ref(false)
+const isSummaryOpen = ref(false)
+const summaryElement = ref<HTMLElement | null>(null)
 
 const shouldSkipPresetConfirmation = (): boolean => {
   if (typeof window === 'undefined') {
@@ -115,24 +111,42 @@ const cancelPreset = (): void => {
   pendingPreset.value = null
   rememberPresetConfirmation.value = false
 }
+
+const closeSummary = (): void => {
+  isSummaryOpen.value = false
+}
+
+const toggleSummary = (): void => {
+  isSummaryOpen.value = !isSummaryOpen.value
+}
+
+const handleDocumentClick = (event: MouseEvent): void => {
+  const eventTarget = event.target as Node
+
+  if (!summaryElement.value?.contains(eventTarget)) {
+    closeSummary()
+  }
+}
+
+const handleDocumentKeydown = (event: KeyboardEvent): void => {
+  if (event.key === 'Escape') {
+    closeSummary()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick)
+  document.addEventListener('keydown', handleDocumentKeydown)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+  document.removeEventListener('keydown', handleDocumentKeydown)
+})
 </script>
 
 <template>
-  <main class="workspace-page">
-    <aside class="workspace-sidebar">
-      <RouterLink class="brand" to="/">DxNavigator</RouterLink>
-      <AppPreferences />
-      <nav class="app-section-nav" aria-label="Application sections">
-        <RouterLink class="complaint-option selected" to="/private/complaints/chest-pain">
-          {{ t('builder.nav.workspace') }}
-        </RouterLink>
-        <RouterLink class="complaint-option" to="/private/builder">
-          {{ t('builder.nav.builder') }}
-        </RouterLink>
-      </nav>
-      <ComplaintSelector :complaints="workflowLinks" :selected-complaint-id="selectedModule.id" />
-    </aside>
-
+  <PrivateWorkspaceShell active-section="workspace" :selected-workflow-id="selectedModule.id">
     <section class="workspace-content">
       <header class="complaint-header">
         <p class="eyebrow">{{ t('workspace.eyebrow') }}</p>
@@ -184,6 +198,7 @@ const cancelPreset = (): void => {
             </div>
 
             <ClinicalGuidanceLibrary
+              id="guidance-library"
               :quick-guides="selectedModule.quickGuides"
               :source-figures="selectedModule.sourceFigures"
             />
@@ -191,6 +206,34 @@ const cancelPreset = (): void => {
         </section>
       </div>
     </section>
+
+    <nav
+      ref="summaryElement"
+      class="page-summary"
+      :class="{ open: isSummaryOpen }"
+      aria-label="Page summary"
+    >
+      <button
+        class="page-summary-label"
+        type="button"
+        :aria-expanded="isSummaryOpen"
+        @click="toggleSummary"
+      >
+        {{ t('summary.title') }}
+      </button>
+      <div class="page-summary-panel">
+        <a
+          v-for="section in selectedModule.sections"
+          :key="section.id"
+          :href="`#workflow-section-${section.id}`"
+          @click="closeSummary"
+        >
+          {{ text(section.title) }}
+        </a>
+        <a href="#clinical-guidance" @click="closeSummary">{{ t('summary.clinicalGuidance') }}</a>
+        <a href="#guidance-library" @click="closeSummary">{{ t('summary.guidanceLibrary') }}</a>
+      </div>
+    </nav>
 
     <div v-if="pendingPreset" class="modal-backdrop" role="presentation" @click="cancelPreset">
       <section
@@ -228,5 +271,5 @@ const cancelPreset = (): void => {
         </div>
       </section>
     </div>
-  </main>
+  </PrivateWorkspaceShell>
 </template>

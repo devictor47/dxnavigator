@@ -15,6 +15,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@lucide/vue": "^1.21.0",
     "liquidjs": "^10.27.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.38",

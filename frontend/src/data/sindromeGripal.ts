@@ -537,6 +537,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
         en: 'American Family Physician, 2025',
         'pt-BR': 'American Family Physician, 2025',
       },
+      sourceUrl: 'https://www.aafp.org/afp/2025/0100/acute-rhinosinusitis',
       citation: {
         en: 'Butler FM, Hernandez DR. Acute Rhinosinusitis: Rapid Evidence Review. American Family Physician. 2025;111(1):47-53.',
         'pt-BR': 'Butler FM, Hernandez DR. Acute Rhinosinusitis: Rapid Evidence Review. American Family Physician. 2025;111(1):47-53.',

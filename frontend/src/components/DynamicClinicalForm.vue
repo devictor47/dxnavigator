@@ -83,7 +83,12 @@ const updateMultiselect = (
 
 <template>
   <form class="dynamic-form">
-    <section v-for="section in session.workflow.sections" :key="section.id" class="form-section">
+    <section
+      v-for="section in session.workflow.sections"
+      :id="`workflow-section-${section.id}`"
+      :key="section.id"
+      class="form-section"
+    >
       <div class="section-heading">
         <h2>{{ text(section.title) }}</h2>
         <p v-if="optionalText(section.description)" class="section-description">
