@@ -1,2 +1,5 @@
 READMEs
 clinical-data/
+.dotnet-home/
+bin/
+obj/

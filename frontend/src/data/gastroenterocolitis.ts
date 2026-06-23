@@ -34,13 +34,13 @@ const stoolFeaturesField: MultiselectField = {
   label: { en: 'Stool characteristics', 'pt-BR': 'Características das fezes' },
   helperText: {
     en: 'Identify inflammatory, bleeding, or high-risk stool patterns.',
-    'pt-BR': 'Identifique padrões inflamatórios, sangramento ou características de alto risco.',
+    'pt-BR': 'Identifique características inflamatórias, hemorrágicas ou de alto risco.',
   },
   type: 'multiselect',
   options: [
     { label: { en: 'Watery', 'pt-BR': 'Aquosa' }, value: 'watery', narrative: { en: 'watery stools', 'pt-BR': 'fezes aquosas' } },
-    { label: { en: 'Bloody', 'pt-BR': 'Com sangue' }, value: 'bloody', narrative: { en: 'bloody stools', 'pt-BR': 'sangue nas fezes' } },
-    { label: { en: 'Mucoid', 'pt-BR': 'Com muco' }, value: 'mucoid', narrative: { en: 'mucoid stools', 'pt-BR': 'muco nas fezes' } },
+    { label: { en: 'Blood in stool', 'pt-BR': 'Sangue nas fezes' }, value: 'blood', narrative: { en: 'blood in stool', 'pt-BR': 'sangue nas fezes' } },
+    { label: { en: 'Mucus in stool', 'pt-BR': 'Muco nas fezes' }, value: 'mucus', narrative: { en: 'mucus in stool', 'pt-BR': 'muco nas fezes' } },
     { label: { en: 'Melena or black stools', 'pt-BR': 'Melena ou fezes enegrecidas' }, value: 'melena', narrative: { en: 'melena or black stools', 'pt-BR': 'melena ou fezes enegrecidas' } },
   ],
   defaultValue: [],
@@ -309,11 +309,11 @@ const hpiTemplate = {
     {% if feverDetails %}Dados de febre incluem {{ feverDetails | list: locale }}.{% endif %}
     {% if associatedSymptoms %}Sintomas associados incluem {{ associatedSymptoms | list: locale }}.{% endif %}
     {% assign hydration = fluidIntake | compact_append: urineOutput | compact_append: toleratingOralFluids %}
-    {% if hydration %}História de hidratação inclui {{ hydration | list: locale }}.{% endif %}
-    {% if dehydrationSigns %}Marcadores de desidratação incluem {{ dehydrationSigns | list: locale }}.{% endif %}
+    {% if hydration %}Estado de hidratação caracterizado por {{ hydration | list: locale }}.{% endif %}
+    {% if dehydrationSigns %}Sinais de desidratação incluem {{ dehydrationSigns | list: locale }}.{% endif %}
     {% if abdominalPainSeverity %}Dor abdominal descrita como {{ abdominalPainSeverity }}.{% endif %}
     {% assign exposures = recentAntibiotics | compact_append: recentHospitalization | compact_append: recentTravel | compact_append: sickContactsOrOutbreak | compact_append: publicHealthExposure | compact_append: immunocompromised %}
-    {% if exposures %}Contexto de risco inclui {{ exposures | list: locale }}.{% endif %}
+    {% if exposures %}Fatores de risco identificados incluem {{ exposures | list: locale }}.{% endif %}
     {% assign details = antibioticDetails | compact_append: travelDetails | compact_append: immunocompromiseDetails %}
     {% if details %}Detalhes adicionais: {{ details | list: locale }}.{% endif %}
     {% assign warningSigns = alteredMentalStatus | compact_append: shockOrSevereDehydration | compact_append: failedOralRehydration | compact_append: persistentVomiting %}
@@ -329,7 +329,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
   },
   overview: {
     en: 'Structure acute diarrhea and vomiting evaluation around duration, stool character, hydration, invasive features, exposures, testing indications, and disposition.',
-    'pt-BR': 'Estruture a avaliação de diarreia e vômitos agudos por duração, características das fezes, hidratação, sinais invasivos, exposições, indicações de exames e disposição.',
+    'pt-BR': 'Estruture a avaliação da diarreia e dos vômitos agudos com foco na duração, características das fezes, estado de hidratação, sinais de invasão, fatores de exposição, indicações de exames e definição da conduta.',
   },
   sections: [
     {
@@ -337,7 +337,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
       title: { en: 'Initial characterization', 'pt-BR': 'Caracterização inicial' },
       description: {
         en: 'Start with duration, stool pattern, frequency, vomiting, and fever to determine acuity and inflammatory risk.',
-        'pt-BR': 'Comece por duração, padrão das fezes, frequência, vômitos e febre para definir gravidade e risco inflamatório.',
+        'pt-BR': 'Comece pela duração dos sintomas, padrão das fezes, frequência das evacuações, presença de vômitos e febre para definir a gravidade e o risco de doença inflamatória ou invasiva.',
       },
       fields: [
         durationField,
@@ -356,7 +356,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
       title: { en: 'Hydration and abdominal severity', 'pt-BR': 'Hidratação e gravidade abdominal' },
       description: {
         en: 'Assess oral tolerance, urine output, dehydration signs, and abdominal pain severity before deciding disposition.',
-        'pt-BR': 'Avalie tolerância oral, diurese, sinais de desidratação e gravidade da dor abdominal antes de decidir disposição.',
+        'pt-BR': 'Avalie a tolerância à ingestão oral, a diurese, os sinais de desidratação e a gravidade da dor abdominal antes de definir a conduta e o destino do paciente.',
       },
       fields: [
         fluidIntakeField,
@@ -368,10 +368,10 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
     },
     {
       id: 'exposure-and-risk',
-      title: { en: 'Exposure and host risk', 'pt-BR': 'Exposição e risco do hospedeiro' },
+      title: { en: 'Exposure and host risk', 'pt-BR': 'Exposição e fatores de risco do paciente' },
       description: {
         en: 'Look for C. difficile risk, travel-associated illness, outbreak context, and immunocompromise.',
-        'pt-BR': 'Procure risco de C. difficile, doença associada a viagem, contexto de surto e imunossupressão.',
+        'pt-BR': 'Investigue fatores de risco para C. difficile, doenças associadas a viagens, contextos de surto e condições de imunossupressão.',
       },
       fields: [
         ...exposureFields,
@@ -409,7 +409,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
       title: { en: 'Bloody or mucoid diarrhea', 'pt-BR': 'Diarreia com sangue ou muco' },
       description: {
         en: 'Suggests inflammatory or invasive diarrhea and raises concern for STEC, Shigella, IBD, or ischemic colitis.',
-        'pt-BR': 'Sugere diarreia inflamatória ou invasiva e levanta suspeita de STEC, Shigella, DII ou colite isquêmica.',
+        'pt-BR': 'Sugere diarreia inflamatória ou invasiva e aumenta a suspeita de STEC, Shigella, DII ou colite isquêmica.',
       },
     },
     {
@@ -439,7 +439,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
       title: { en: 'Viral gastroenteritis', 'pt-BR': 'Gastroenterite viral' },
       description: {
         en: 'Watery diarrhea, vomiting, sick contacts or outbreak setting, and self-limited course.',
-        'pt-BR': 'Diarreia aquosa, vômitos, contato com doentes ou surto e curso autolimitado.',
+        'pt-BR': 'Diarreia aquosa, vômitos, contato com doentes ou contexto de surto e evolução autolimitada.',
       },
     },
     {
@@ -515,7 +515,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
       },
     },
     {
-      title: { en: 'BMP and CBC based on severity', 'pt-BR': 'Eletrólitos/função renal e hemograma conforme gravidade' },
+      title: { en: 'BMP and CBC based on severity', 'pt-BR': 'Hemograma, eletrólitos e função renal conforme a gravidade' },
       description: {
         en: 'Use for moderate-to-severe dehydration, altered mental status, older age, comorbidities, suspected sepsis, HUS concern, or need for IV fluids.',
         'pt-BR': 'Use em desidratação moderada a grave, alteração mental, idosos, comorbidades, suspeita de sepse, SHU ou necessidade de hidratação venosa.',
@@ -534,7 +534,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
       title: { en: 'Mild watery diarrhea', 'pt-BR': 'Diarreia aquosa leve' },
       description: {
         en: 'Typical outpatient pathway when hydration is reassuring and no high-risk features are present.',
-        'pt-BR': 'Via ambulatorial típica quando a hidratação é tranquilizadora e não há sinais de alto risco.',
+        'pt-BR': 'Apresentação típica de manejo ambulatorial quando o estado de hidratação é satisfatório e não há sinais de alto risco.',
       },
       criteria: [
         { en: 'Watery diarrhea without blood or mucus', 'pt-BR': 'Diarreia aquosa sem sangue ou muco' },
@@ -551,7 +551,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
       title: { en: 'Inflammatory or invasive diarrhea concern', 'pt-BR': 'Suspeita de diarreia inflamatória ou invasiva' },
       description: {
         en: 'Use when stool features or systemic findings suggest invasive pathogens or complications.',
-        'pt-BR': 'Use quando características das fezes ou achados sistêmicos sugerem patógenos invasivos ou complicações.',
+        'pt-BR': 'Use quando características das fezes ou manifestações sistêmicas sugerem patógenos invasivos ou complicações.',
       },
       criteria: [
         { en: 'Bloody or mucoid stool', 'pt-BR': 'Sangue ou muco nas fezes' },
@@ -584,7 +584,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
       title: { en: 'Observation or admission concern', 'pt-BR': 'Considerar observação ou internação' },
       description: {
         en: 'Use when dehydration, vomiting, host risk, or systemic illness makes outpatient care unsafe.',
-        'pt-BR': 'Use quando desidratação, vômitos, risco do hospedeiro ou doença sistêmica tornam o manejo ambulatorial inseguro.',
+        'pt-BR': 'Use quando desidratação, vômitos, fatores de risco do paciente ou doença sistêmica tornam o manejo ambulatorial inseguro.',
       },
       criteria: [
         { en: 'Moderate-to-severe dehydration or failed oral rehydration', 'pt-BR': 'Desidratação moderada a grave ou falha da reidratação oral' },
@@ -614,7 +614,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
       },
       notes: {
         en: 'Source figure reviewed locally for dehydration-first management, testing triggers, travel pathway, outbreak risk, and STEC caution.',
-        'pt-BR': 'Figura-fonte revisada localmente para manejo começando por hidratação, gatilhos de testagem, via de viagem, risco de surto e cautela com STEC.',
+        'pt-BR': 'Figura de referência revisada localmente para manejo baseado inicialmente na hidratação, gatilhos para exames, avaliação de viajantes, risco de surtos e cautela com STEC.',
       },
     },
     {
@@ -633,7 +633,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
       },
       notes: {
         en: 'Source algorithm reviewed locally for watery versus bloody diarrhea branching, C. difficile risk, persistent diarrhea, and immunocompromised pathways.',
-        'pt-BR': 'Algoritmo-fonte revisado localmente para ramificação entre diarreia aquosa e sanguinolenta, risco de C. difficile, diarreia persistente e vias para imunossuprimidos.',
+        'pt-BR': 'Algoritmo de referência revisado localmente para diferenciação entre diarreia aquosa e sanguinolenta, risco de C. difficile, diarreia persistente e manejo de pacientes imunossuprimidos.',
       },
     },
   ],
@@ -674,7 +674,7 @@ export const gastroenterocolitisModule: ClinicalWorkflow = {
         'pt-BR': 'Sangue ou muco nas fezes com febre ou dor abdominal intensa.',
       },
       answers: {
-        stoolFeatures: ['bloody', 'mucoid'],
+        stoolFeatures: ['blood', 'mucus'],
         vomiting: false,
         fever: true,
         associatedSymptoms: ['crampy-pain', 'malaise'],

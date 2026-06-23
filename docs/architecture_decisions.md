@@ -425,3 +425,112 @@ Vite allows hosts broadly for development compatibility, while exposure is contr
 ### Consequences
 
 Localhost development remains simple, and VPN/reverse-proxy deployment can keep Vite bound to loopback. Production deployment will need a separate hosting decision later.
+
+## ADR 010: Authentication, Authorization, and Persistence Foundation
+
+### Status
+
+Accepted.
+
+### Context
+
+DxNavigator is moving from a frontend-only prototype toward a persisted application with private clinical workspaces.
+
+The desired authentication experience should stay simple:
+
+- Local registration with name, email, and password.
+- Local login with email and password.
+- Passwords require only a minimum length of 6 characters.
+- No uppercase, lowercase, digit, or symbol requirements.
+- No phone number.
+- No required email verification before login.
+- Email must be unique.
+- Google sign-in should be supported as the first external provider.
+
+The backend should still use established security primitives instead of custom password hashing or handwritten authentication infrastructure.
+
+### Decision
+
+The backend will use ASP.NET Core Identity with a custom application user:
+
+```csharp
+public class ApplicationUser : IdentityUser<int>
+{
+    public string Name { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? DeletedAt { get; set; }
+}
+```
+
+Identity will be configured with a deliberately simple local password policy:
+
+```csharp
+options.Password.RequiredLength = 6;
+options.Password.RequireDigit = false;
+options.Password.RequireLowercase = false;
+options.Password.RequireUppercase = false;
+options.Password.RequireNonAlphanumeric = false;
+options.Password.RequiredUniqueChars = 1;
+```
+
+Sign-in will not require confirmed email or phone:
+
+```csharp
+options.SignIn.RequireConfirmedEmail = false;
+options.SignIn.RequireConfirmedPhoneNumber = false;
+options.User.RequireUniqueEmail = true;
+```
+
+PostgreSQL will be the application database. EF Core will manage Identity tables and future application tables.
+
+Authorization will use secure cookie-based authentication. The app should lean toward secure defaults:
+
+- HTTP-only authentication cookies.
+- Secure cookies in deployed environments.
+- SameSite configured deliberately for the frontend/backend deployment shape.
+- HTTPS for all public traffic.
+- Direct HTTP requests should redirect to HTTPS instead of being served.
+- Forwarded headers support when running behind Caddy or another reverse proxy, so internal proxy-to-app HTTP can be treated as HTTPS only when the original request used HTTPS.
+
+Google will be the first external login provider. External login secrets must not be committed to the repository. They should come from local user secrets or environment variables.
+
+### Rules
+
+- Do not implement custom password hashing.
+- Do not store authentication tokens in browser local storage.
+- Do not require email confirmation for login in the initial version.
+- Do require unique email addresses.
+- Use email as the username for local accounts.
+- Local accounts may have a password.
+- External accounts may exist without a local password.
+- A Google login with an email matching an existing user should link to that user when safe.
+- A Google login with no matching user should create a user from the provider email and display name when available.
+- Google-provided email may be treated as provider-verified, but this does not introduce a required app-level email verification flow.
+- Instagram login is not part of the initial scope.
+- Keep auth endpoints minimal: register, login, logout, current user, Google challenge, and Google callback.
+
+### Rationale
+
+ASP.NET Core Identity gives the project durable auth infrastructure without turning authentication into the main product. It provides password hashing, user persistence, security stamps, external login support, and cookie integration while still allowing the product to keep a humane password policy.
+
+Cookie auth matches the intended web app shape and avoids storing bearer tokens manually in browser storage. It also works well when the frontend and backend are served behind the same HTTPS origin through Caddy or a later production host.
+
+PostgreSQL is a good fit because it supports Identity persistence, normal relational application tables, and future `jsonb` storage for workflow definitions and workflow submissions.
+
+Google sign-in reduces friction for users while local email/password remains available for users who do not want external login.
+
+### Consequences
+
+The next backend implementation should create:
+
+- An ASP.NET Core backend project.
+- PostgreSQL Docker Compose service.
+- EF Core DbContext using Identity.
+- `ApplicationUser`.
+- Initial Identity migration.
+- Minimal auth endpoints.
+- Google external auth configuration.
+- Frontend login/register routes.
+- Private route protection.
+
+Production deployment will need explicit HTTPS, cookie, CORS, and reverse proxy configuration. Local development may require a Vite proxy or a same-origin reverse proxy setup so cookie behavior matches production closely.

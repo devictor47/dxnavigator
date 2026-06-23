@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   ClipboardList,
+  LogOut,
   PanelLeftClose,
   PanelLeftOpen,
   Stethoscope,
@@ -8,6 +9,7 @@ import {
   Wrench,
 } from '@lucide/vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import AppPreferences from '@/components/AppPreferences.vue'
 import ComplaintSelector from '@/components/ComplaintSelector.vue'
@@ -20,9 +22,15 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const router = useRouter()
 const isSidebarCollapsed = ref(false)
 const isAccountMenuOpen = ref(false)
 const accountElement = ref<HTMLElement | null>(null)
+const currentUser = ref<{
+  id: number
+  name: string
+  email: string
+} | null>(null)
 
 const workflowLinks = computed(() =>
   clinicalModules.map((module) => ({
@@ -32,6 +40,32 @@ const workflowLinks = computed(() =>
     icon: module.id,
   })),
 )
+
+const displayedUserName = computed(() => currentUser.value?.name || t('auth.account'))
+
+const loadCurrentUser = async (): Promise<void> => {
+  const response = await fetch('/api/auth/me', {
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    currentUser.value = null
+    return
+  }
+
+  currentUser.value = await response.json()
+}
+
+const logout = async (): Promise<void> => {
+  await fetch('/api/auth/logout', {
+    method: 'POST',
+    credentials: 'include',
+  }).catch(() => undefined)
+
+  currentUser.value = null
+  closeAccountMenu()
+  await router.push('/auth/login')
+}
 
 const closeAccountMenu = (): void => {
   isAccountMenuOpen.value = false
@@ -54,6 +88,7 @@ const handleDocumentKeydown = (event: KeyboardEvent): void => {
 }
 
 onMounted(() => {
+  void loadCurrentUser()
   document.addEventListener('click', handleDocumentClick)
   document.addEventListener('keydown', handleDocumentKeydown)
 })
@@ -122,19 +157,22 @@ onBeforeUnmount(() => {
         <button
           class="user-summary"
           type="button"
-          title="Demo Physician"
+          :title="displayedUserName"
           :aria-expanded="isAccountMenuOpen"
           @click="toggleAccountMenu"
         >
           <User class="nav-icon" :size="18" aria-hidden="true" />
           <div class="user-copy">
-            <strong>Demo Physician</strong>
-            <span>Local workspace</span>
+            <strong>{{ displayedUserName }}</strong>
           </div>
         </button>
 
         <div class="account-menu">
           <AppPreferences />
+          <button class="account-menu-action" type="button" @click="logout">
+            <LogOut :size="18" aria-hidden="true" />
+            <span>{{ t('auth.logout') }}</span>
+          </button>
         </div>
       </div>
     </aside>

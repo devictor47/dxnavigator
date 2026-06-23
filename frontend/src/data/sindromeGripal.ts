@@ -228,7 +228,7 @@ const riskFactorField: MultiselectField = {
   label: { en: 'Risk factors for complications', 'pt-BR': 'Fatores de risco para complicações' },
   type: 'multiselect',
   options: [
-    { label: { en: 'Age 65 years or older', 'pt-BR': 'Idade igual ou maior que 65 anos' }, value: 'older-adult', narrative: { en: 'age 65 years or older', 'pt-BR': 'idade igual ou maior que 65 anos' } },
+    { label: { en: 'Age 65 years or older', 'pt-BR': 'Idade maior ou igual a 65 anos' }, value: 'older-adult', narrative: { en: 'age 65 years or older', 'pt-BR': 'idade maior ou igual a 65 anos' } },
     { label: { en: 'Pregnancy', 'pt-BR': 'Gestação' }, value: 'pregnancy', narrative: { en: 'pregnancy', 'pt-BR': 'gestação' } },
     { label: { en: 'Chronic pulmonary disease', 'pt-BR': 'Doença pulmonar crônica' }, value: 'pulmonary-disease', narrative: { en: 'chronic pulmonary disease', 'pt-BR': 'doença pulmonar crônica' } },
     { label: { en: 'Chronic cardiac disease', 'pt-BR': 'Doença cardíaca crônica' }, value: 'cardiac-disease', narrative: { en: 'chronic cardiac disease', 'pt-BR': 'doença cardíaca crônica' } },
@@ -242,10 +242,10 @@ const riskFactorField: MultiselectField = {
 const rhinosinusitisFeatureFields: BooleanField[] = [
   {
     key: 'facialPain',
-    label: { en: 'Facial pain or sinus pressure', 'pt-BR': 'Dor facial ou pressão em seios da face' },
+    label: { en: 'Facial pain or sinus pressure', 'pt-BR': 'Dor facial ou pressão nos seios da face' },
     type: 'boolean',
     defaultValue: false,
-    narrative: { whenTrue: { en: 'facial pain or sinus pressure', 'pt-BR': 'dor facial ou pressão em seios da face' } },
+    narrative: { whenTrue: { en: 'facial pain or sinus pressure', 'pt-BR': 'dor facial ou pressão nos seios da face' } },
   },
   {
     key: 'purulentNasalDischarge',
@@ -289,12 +289,12 @@ const hpiTemplate = {
     {% assign giSymptoms = nauseaVomiting | compact_append: diarrhea | compact_append: abdominalPain %}
     {% if giSymptoms %}Sintomas gastrointestinais incluem {{ giSymptoms | list: locale }}.{% endif %}
     {% if onsetPattern %}Padrão de evolução inclui {{ onsetPattern | list: locale }}.{% endif %}
-    {% if measuredTemperature %}Temperatura medida referida: {{ measuredTemperature }}.{% endif %}
+    {% if measuredTemperature %}Temperatura aferida referida: {{ measuredTemperature }}.{% endif %}
     {% if riskFactors %}Fatores de risco para complicações incluem {{ riskFactors | list: locale }}.{% endif %}
     {% assign warningSigns = hypoxemiaOrRespiratoryDistress | compact_append: chestPain | compact_append: alteredMentalStatus | compact_append: severeHeadachePersistentFever | compact_append: dehydration | compact_append: hemoptysis %}
     {% if warningSigns %}Sinais de alerta referidos: {{ warningSigns | list: locale }}.{% endif %}
     {% assign sinusFeatures = facialPain | compact_append: purulentNasalDischarge | compact_append: periorbitalSwellingOrDiplopia %}
-    {% if sinusFeatures %}Achados relacionados a rinossinusite incluem {{ sinusFeatures | list: locale }}.{% endif %}
+    {% if sinusFeatures %}Achados relacionados à rinossinusite incluem {{ sinusFeatures | list: locale }}.{% endif %}
   `,
 }
 
@@ -306,7 +306,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
   },
   overview: {
     en: 'Structure the initial evaluation of influenza-like illness and upper respiratory symptoms, including warning signs, risk context, and rhinosinusitis clues.',
-    'pt-BR': 'Estruture a avaliação inicial de síndrome gripal e sintomas de vias aéreas superiores, incluindo sinais de alerta, contexto de risco e pistas de rinossinusite.',
+    'pt-BR': 'Estruture a avaliação inicial da síndrome gripal e dos sintomas de vias aéreas superiores, incluindo sinais de alerta, contexto de risco e pistas de rinossinusite.',
   },
   sections: [
     {
@@ -330,7 +330,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
     },
     {
       id: 'risk-context',
-      title: { en: 'Risk context', 'pt-BR': 'Contexto de risco' },
+      title: { en: 'Risk context', 'pt-BR': 'Fatores de risco' },
       fields: [riskFactorField],
     },
     {
@@ -347,7 +347,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'Rhinosinusitis clues', 'pt-BR': 'Pistas de rinossinusite' },
       description: {
         en: 'Use when nasal symptoms raise concern for acute bacterial rhinosinusitis or orbital complication.',
-        'pt-BR': 'Use quando sintomas nasais levantam suspeita de rinossinusite bacteriana aguda ou complicação orbitária.',
+        'pt-BR': 'Use quando sintomas nasais levantarem suspeita de rinossinusite bacteriana aguda ou complicação orbitária.',
       },
       fields: rhinosinusitisFeatureFields,
     },
@@ -357,7 +357,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'Respiratory distress or hypoxemia', 'pt-BR': 'Desconforto respiratório ou hipoxemia' },
       description: {
         en: 'Dyspnea, tachypnea, low oxygen saturation, cyanosis, or increased work of breathing require escalation.',
-        'pt-BR': 'Dispneia, taquipneia, baixa saturação, cianose ou aumento do esforço respiratório exigem escalonamento.',
+        'pt-BR': 'Dispneia, taquipneia, baixa saturação, cianose ou aumento do esforço respiratório exigem escalonamento da avaliação.',
       },
     },
     {
@@ -378,14 +378,14 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'Dehydration or inability to tolerate oral intake', 'pt-BR': 'Desidratação ou intolerância à via oral' },
       description: {
         en: 'Persistent vomiting, poor intake, decreased urine output, or signs of poor perfusion require closer assessment.',
-        'pt-BR': 'Vômitos persistentes, baixa ingesta, redução da diurese ou sinais de má perfusão exigem avaliação mais próxima.',
+        'pt-BR': 'Vômitos persistentes, baixa ingestão, redução da diurese ou sinais de má perfusão exigem avaliação mais próxima.',
       },
     },
     {
       title: { en: 'Orbital complication concern', 'pt-BR': 'Suspeita de complicação orbitária' },
       description: {
         en: 'Periorbital swelling, diplopia, painful eye movements, or visual symptoms warrant urgent evaluation.',
-        'pt-BR': 'Edema periorbitário, diplopia, dor à movimentação ocular ou sintomas visuais indicam avaliação urgente.',
+        'pt-BR': 'Edema periorbitário, diplopia, dor à movimentação ocular ou sintomas visuais indicam necessidade de avaliação urgente.',
       },
     },
   ],
@@ -394,7 +394,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'Uncomplicated viral URI', 'pt-BR': 'IVAS viral não complicada' },
       description: {
         en: 'Common cold or viral upper respiratory infection with normal vital signs and no red flags.',
-        'pt-BR': 'Resfriado comum ou infecção viral de vias aéreas superiores com sinais vitais normais e sem sinais de alerta.',
+        'pt-BR': 'Resfriado comum ou infecção viral de vias aéreas superiores, com sinais vitais normais e sem sinais de alerta.',
       },
     },
     {
@@ -408,21 +408,21 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'COVID-19 or other respiratory virus', 'pt-BR': 'COVID-19 ou outro vírus respiratório' },
       description: {
         en: 'Consider based on local circulation, exposure, vaccination status, and testing availability.',
-        'pt-BR': 'Considere conforme circulação local, exposição, vacinação e disponibilidade de testagem.',
+        'pt-BR': 'Considere conforme circulação local, exposição, status vacinal e disponibilidade de testagem.',
       },
     },
     {
       title: { en: 'Community-acquired pneumonia', 'pt-BR': 'Pneumonia adquirida na comunidade' },
       description: {
         en: 'Cough with fever, dyspnea, abnormal lung exam, hypoxemia, pleuritic pain, or systemic illness.',
-        'pt-BR': 'Tosse com febre, dispneia, alteração pulmonar ao exame, hipoxemia, dor pleurítica ou doença sistêmica.',
+        'pt-BR': 'Tosse com febre, dispneia, alteração pulmonar ao exame físico, hipoxemia, dor pleurítica ou sinais sistêmicos.',
       },
     },
     {
       title: { en: 'Acute bacterial rhinosinusitis', 'pt-BR': 'Rinossinusite bacteriana aguda' },
       description: {
         en: 'Persistent symptoms, double-sickening, or severe fever with purulent discharge and facial pain.',
-        'pt-BR': 'Sintomas persistentes, piora após melhora inicial ou febre intensa com secreção purulenta e dor facial.',
+        'pt-BR': 'Sintomas persistentes, piora após melhora inicial ou febre alta com secreção purulenta e dor facial.',
       },
     },
     {
@@ -445,35 +445,35 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'No routine testing when uncomplicated', 'pt-BR': 'Sem exames de rotina quando não complicado' },
       description: {
         en: 'For normal vital signs, reassuring exam, and no red flags, diagnosis is usually clinical with symptomatic care.',
-        'pt-BR': 'Com sinais vitais normais, exame tranquilizador e sem sinais de alerta, o diagnóstico costuma ser clínico com manejo sintomático.',
+        'pt-BR': 'Com sinais vitais normais, exame físico tranquilizador e ausência de sinais de alerta, o diagnóstico costuma ser clínico, com manejo sintomático.',
       },
     },
     {
       title: { en: 'Targeted viral testing when it changes management', 'pt-BR': 'Testagem viral direcionada quando muda a conduta' },
       description: {
         en: 'Consider influenza/COVID testing for high-risk patients, severe illness, outbreaks, infection control, or treatment decisions.',
-        'pt-BR': 'Considere teste para influenza/COVID em pacientes de risco, doença grave, surtos, controle de infecção ou decisão terapêutica.',
+        'pt-BR': 'Considere testagem para influenza/COVID em pacientes de risco, doença grave, surtos, controle de infecção ou quando o resultado mudar a conduta.',
       },
     },
     {
       title: { en: 'Chest X-ray if pneumonia is suspected', 'pt-BR': 'Radiografia de tórax se houver suspeita de pneumonia' },
       description: {
         en: 'Use when dyspnea, hypoxemia, focal lung findings, pleuritic pain, or systemic illness raises concern.',
-        'pt-BR': 'Use quando dispneia, hipoxemia, achados pulmonares focais, dor pleurítica ou doença sistêmica levantarem suspeita.',
+        'pt-BR': 'Use quando dispneia, hipoxemia, achados pulmonares focais, dor pleurítica ou sinais sistêmicos levantarem suspeita.',
       },
     },
     {
       title: { en: 'Labs based on severity', 'pt-BR': 'Exames laboratoriais conforme gravidade' },
       description: {
         en: 'CBC, metabolic panel, CK, cultures, or other tests may be appropriate for sepsis concern, dehydration, myositis, or severe disease.',
-        'pt-BR': 'Hemograma, eletrólitos/função renal, CK, culturas ou outros exames podem ser apropriados em suspeita de sepse, desidratação, miosite ou doença grave.',
+        'pt-BR': 'Hemograma, eletrólitos, função renal, CK, culturas ou outros exames podem ser apropriados em caso de suspeita de sepse, desidratação, miosite ou doença grave.',
       },
     },
     {
       title: { en: 'Rhinosinusitis complication evaluation', 'pt-BR': 'Avaliação de complicações da rinossinusite' },
       description: {
         en: 'Urgent evaluation is appropriate for orbital signs, severe toxicity, neurologic findings, or failure to improve as expected.',
-        'pt-BR': 'Avaliação urgente é apropriada em sinais orbitários, toxicidade importante, achados neurológicos ou ausência de melhora esperada.',
+        'pt-BR': 'Avaliação urgente é apropriada diante de sinais orbitários, toxicidade importante, achados neurológicos ou ausência de melhora conforme esperado.',
       },
     },
   ],
@@ -482,7 +482,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'Uncomplicated viral URI', 'pt-BR': 'IVAS viral não complicada' },
       description: {
         en: 'Use when symptoms and exam fit a self-limited upper respiratory infection without warning signs.',
-        'pt-BR': 'Use quando sintomas e exame sugerem infecção de vias aéreas superiores autolimitada, sem sinais de alerta.',
+        'pt-BR': 'Use quando sintomas e exame sugerirem infecção de vias aéreas superiores autolimitada, sem sinais de alerta.',
       },
       criteria: [
         { en: 'Normal vital signs and reassuring respiratory exam', 'pt-BR': 'Sinais vitais normais e exame respiratório tranquilizador' },
@@ -499,11 +499,11 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'Influenza-like illness', 'pt-BR': 'Síndrome gripal / suspeita de influenza' },
       description: {
         en: 'Use when abrupt systemic symptoms, fever, myalgia, seasonality, or exposure raise influenza concern.',
-        'pt-BR': 'Use quando início abrupto, sintomas sistêmicos, febre, mialgia, sazonalidade ou exposição levantam suspeita de influenza.',
+        'pt-BR': 'Use quando início abrupto, sintomas sistêmicos, febre, mialgia, sazonalidade ou exposição levantarem suspeita de influenza.',
       },
       criteria: [
         { en: 'Fever or chills with cough, sore throat, myalgia, headache, or fatigue', 'pt-BR': 'Febre ou calafrios com tosse, dor de garganta, mialgia, cefaleia ou fadiga' },
-        { en: 'High-risk patient, severe illness, outbreak, or result would change management', 'pt-BR': 'Paciente de risco, doença grave, surto ou resultado mudaria conduta' },
+        { en: 'High-risk patient, severe illness, outbreak, or result would change management', 'pt-BR': 'Paciente de risco, doença grave, surto ou resultado capaz de mudar a conduta' },
       ],
       actions: [
         { en: 'Consider targeted influenza/COVID testing when results affect management', 'pt-BR': 'Considerar testagem direcionada para influenza/COVID quando o resultado muda a conduta' },
@@ -514,7 +514,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'Acute bacterial rhinosinusitis concern', 'pt-BR': 'Suspeita de rinossinusite bacteriana aguda' },
       description: {
         en: 'Use when nasal/sinus symptoms follow a complication pattern rather than an uncomplicated viral course.',
-        'pt-BR': 'Use quando sintomas nasais/sinusais seguem padrão de complicação, e não curso viral não complicado.',
+        'pt-BR': 'Use quando sintomas nasais/sinusais seguirem padrão de complicação, e não curso viral não complicado.',
       },
       criteria: [
         { en: 'Symptoms persist beyond one week without improvement', 'pt-BR': 'Sintomas persistem por mais de uma semana sem melhora' },
@@ -523,7 +523,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       ],
       actions: [
         { en: 'Consider bacterial rhinosinusitis pathway and follow-up plan', 'pt-BR': 'Considerar via de rinossinusite bacteriana e plano de reavaliação' },
-        { en: 'Urgent evaluation if periorbital swelling, diplopia, or visual symptoms occur', 'pt-BR': 'Avaliação urgente se houver edema periorbitário, diplopia ou sintomas visuais' },
+        { en: 'Urgent evaluation if periorbital swelling, diplopia, or visual symptoms occur', 'pt-BR': 'Indicar avaliação urgente se houver edema periorbitário, diplopia ou sintomas visuais' },
       ],
     },
   ],
@@ -544,7 +544,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       },
       notes: {
         en: 'Source figure reviewed locally for criteria around monitoring, double-sickening, persistent symptoms, severe symptoms, and orbital warning signs. Image is not bundled in the public app.',
-        'pt-BR': 'Figura-fonte revisada localmente para critérios de observação, piora após melhora inicial, sintomas persistentes, sintomas graves e sinais orbitários. A imagem não está incluída no app público.',
+        'pt-BR': 'Figura de referência revisada localmente para critérios de observação, piora após melhora inicial, sintomas persistentes, sintomas graves e sinais orbitários. A imagem não está incluída no app público.',
       },
     },
   ],
@@ -589,7 +589,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'Influenza-like illness', 'pt-BR': 'Síndrome gripal' },
       description: {
         en: 'Abrupt systemic symptoms with fever and cough, without severe warning signs.',
-        'pt-BR': 'Sintomas sistêmicos abruptos com febre e tosse, sem sinais graves de alerta.',
+        'pt-BR': 'Sintomas sistêmicos de início abrupto, com febre e tosse, sem sinais graves de alerta.',
       },
       answers: {
         onsetPattern: ['sudden-onset'],
@@ -621,7 +621,7 @@ export const sindromeGripalModule: ClinicalWorkflow = {
       title: { en: 'Rhinosinusitis concern', 'pt-BR': 'Suspeita de rinossinusite' },
       description: {
         en: 'Persistent or worsening nasal symptoms with sinus features.',
-        'pt-BR': 'Sintomas nasais persistentes ou em piora com achados sinusais.',
+        'pt-BR': 'Sintomas nasais persistentes ou em piora, com achados sinusais.',
       },
       answers: {
         onsetPattern: ['double-sickening', 'persistent-symptoms'],

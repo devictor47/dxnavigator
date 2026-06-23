@@ -1,5 +1,46 @@
 services: # Collection of containers that compose the application
 
+  postgres:
+    image: postgres:17-alpine
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-dxnavigator}
+      POSTGRES_USER: ${POSTGRES_USER:-dxnavigator}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dxnavigator_dev_password}
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    ports:
+      - "${POSTGRES_BIND_ADDRESS:-127.0.0.1}:5432:5432"
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dxnavigator} -d ${POSTGRES_DB:-dxnavigator}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-dxnavigator};Username=${POSTGRES_USER:-dxnavigator};Password=${POSTGRES_PASSWORD:-dxnavigator_dev_password}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+
+    volumes:
+      - ./backend:/workspace
+      - nuget_cache:/root/.nuget/packages
+
+    ports:
+      - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:8080:8080"
+
   frontend: # Vue/Vite frontend container
 
     build:
@@ -30,3 +71,5 @@ services: # Collection of containers that compose the application
 
 volumes:
   npm_cache:
+  nuget_cache:
+  postgres_data:

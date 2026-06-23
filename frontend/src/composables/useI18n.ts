@@ -19,6 +19,26 @@ const messages = {
     'common.copied': 'Copied',
     'common.cancel': 'Cancel',
     'common.selectOption': 'Select an option',
+    'auth.login': 'Log in',
+    'auth.logout': 'Log out',
+    'auth.register': 'Create account',
+    'auth.account': 'Account',
+    'auth.createAccount': 'Create account',
+    'auth.loginEyebrow': 'Welcome back',
+    'auth.loginTitle': 'Log in to DxNavigator',
+    'auth.loginDescription': 'Continue building structured clinical workflows and generated notes.',
+    'auth.registerEyebrow': 'Get started',
+    'auth.registerTitle': 'Create your DxNavigator account',
+    'auth.registerDescription': 'Use a simple local account or continue with Google.',
+    'auth.name': 'Name',
+    'auth.email': 'Email',
+    'auth.password': 'Password',
+    'auth.passwordHint': 'Use at least 6 characters. No symbol gymnastics required.',
+    'auth.submitting': 'Working...',
+    'auth.or': 'or',
+    'auth.continueWithGoogle': 'Continue with Google',
+    'auth.loginFailed': 'Could not log in with those credentials.',
+    'auth.registerFailed': 'Could not create this account.',
     'landing.nav.openWorkspace': 'Open workspace',
     'landing.eyebrow': 'Structured clinical workflows',
     'landing.description':
@@ -170,47 +190,80 @@ const messages = {
     'common.copied': 'Copiado',
     'common.cancel': 'Cancelar',
     'common.selectOption': 'Selecione uma opção',
+
+    'auth.login': 'Entrar',
+    'auth.logout': 'Sair',
+    'auth.register': 'Criar conta',
+    'auth.account': 'Conta',
+    'auth.createAccount': 'Criar conta',
+    'auth.loginEyebrow': 'Bem-vindo de volta',
+    'auth.loginTitle': 'Entrar no DxNavigator',
+    'auth.loginDescription': 'Continue criando fluxos clínicos estruturados e notas geradas.',
+    'auth.registerEyebrow': 'Comece agora',
+    'auth.registerTitle': 'Crie sua conta DxNavigator',
+    'auth.registerDescription': 'Use uma conta local simples ou continue com o Google.',
+    'auth.name': 'Nome',
+    'auth.email': 'E-mail',
+    'auth.password': 'Senha',
+    'auth.passwordHint': 'Use pelo menos 6 caracteres.',
+    'auth.submitting': 'Processando...',
+    'auth.or': 'ou',
+    'auth.continueWithGoogle': 'Continuar com o Google',
+    'auth.loginFailed': 'Não foi possível entrar com essas credenciais.',
+    'auth.registerFailed': 'Não foi possível criar esta conta.',
+
     'landing.nav.openWorkspace': 'Abrir workspace',
-    'landing.eyebrow': 'Fluxos clinicos estruturados',
+    'landing.eyebrow': 'Fluxos clínicos estruturados',
     'landing.description':
-      'DxNavigator transforma avaliacoes guiadas por queixa em fluxos interativos que coletam historia, geram texto de HMA e mantem a orientacao clinica por perto durante o atendimento.',
-    'landing.action': 'Abrir workspace demo',
+      'DxNavigator transforma avaliações guiadas por queixa em fluxos interativos que coletam história, geram texto de HMA e mantêm a orientação clínica por perto durante o atendimento.',
+    'landing.action': 'Abrir demonstração do workspace',
     'landing.preview.title': 'Dor Torácica',
-    'landing.preview.subtitle': 'Previa do fluxo',
-    'landing.preview.dynamicForm': 'Historia estruturada',
-    'landing.preview.metadataDriven': 'Formulario por metadados',
+    'landing.preview.subtitle': 'Prévia do fluxo',
+    'landing.preview.dynamicForm': 'História estruturada',
+    'landing.preview.metadataDriven': 'Formulário por metadados',
     'landing.preview.hpiPreview': 'HMA gerada',
     'landing.preview.realTime': 'Atualiza em tempo real',
-    'landing.preview.reasoning': 'Orientacao clinica',
-    'landing.preview.reasoningValue': 'Alertas, conduta, fontes',
+    'landing.preview.reasoning': 'Orientação clínica',
+    'landing.preview.reasoningValue': 'Alertas, conduta e fontes',
     'landing.preview.workup': 'Construtor de fluxos',
     'landing.preview.nextSteps': 'Importar e exportar fluxos',
+
     'workspace.eyebrow': 'Módulo clínico interativo',
     'workspace.formEyebrow': 'Entrada estruturada',
     'workspace.formTitle': 'Coleta da história',
     'workspace.helpTitle': 'Guia rápido',
     'workspace.helpBody':
       'Revise sinais de alerta, diagnósticos diferenciais e investigação antes de avançar.',
+
     'summary.title': 'Resumo',
     'summary.clinicalGuidance': 'Orientação clínica',
     'summary.guidanceLibrary': 'Biblioteca de orientação',
+
     'sidebar.collapse': 'Recolher barra lateral',
     'sidebar.expand': 'Expandir barra lateral',
+
     'presets.eyebrow': 'Predefinições',
     'presets.title': 'Carregar estado comum',
-    'presets.description': 'Substitua o formulário por um conjunto de respostas preparado para um padrão comum de consulta.',
+    'presets.description':
+      'Substitua o formulário por um conjunto de respostas preparado para um padrão comum de consulta.',
     'presets.confirmEyebrow': 'Substituir formulário',
     'presets.confirmTitle': 'Carregar esta predefinição?',
     'presets.confirmDescription':
       'Isso substituirá as respostas atuais do formulário. Os campos definidos pela predefinição ficarão destacados depois.',
-    'presets.rememberDecision': 'Lembrar esta decisão e pular esta confirmação da próxima vez.',
+    'presets.rememberDecision':
+      'Lembrar esta decisão e pular esta confirmação da próxima vez.',
     'presets.replaceForm': 'Substituir formulário',
+
     'selector.eyebrow': 'Queixa principal',
     'selector.title': 'Selecione um fluxo',
+
     'form.eyebrow': 'História estruturada',
+
     'preview.eyebrow': 'Nota gerada',
     'preview.title': 'Prévia da HMA',
-    'preview.helper': 'Arraste a borda inferior para dar mais espaço vertical à nota.',
+    'preview.helper':
+      'Arraste a borda inferior para dar mais espaço vertical à nota.',
+
     'guidance.redFlagsEyebrow': 'Segurança',
     'guidance.redFlagsTitle': 'Sinais de alerta',
     'guidance.differentialsEyebrow': 'Raciocínio',
@@ -220,94 +273,147 @@ const messages = {
     'guidance.libraryEyebrow': 'Consulta',
     'guidance.libraryTitle': 'Biblioteca de orientação clínica',
     'guidance.quickGuideTitle': 'Guia diagnóstico rápido',
-    'guidance.quickGuideDescription': 'Resumo estruturado para consulta rápida durante o atendimento.',
+    'guidance.quickGuideDescription':
+      'Resumo estruturado para consulta rápida durante o atendimento.',
     'guidance.sourceFiguresTitle': 'Figuras da fonte',
-    'guidance.sourceFiguresDescription': 'Algoritmos ou figuras originais de diretrizes e fontes de evidência.',
-    'guidance.noQuickGuides': 'Nenhum guia rápido configurado para este fluxo ainda.',
-    'guidance.noSourceFigures': 'Nenhuma figura de fonte configurada para este fluxo ainda.',
+    'guidance.sourceFiguresDescription':
+      'Algoritmos ou figuras originais de diretrizes e fontes de evidência.',
+    'guidance.noQuickGuides':
+      'Nenhum guia rápido configurado para este fluxo ainda.',
+    'guidance.noSourceFigures':
+      'Nenhuma figura de fonte configurada para este fluxo ainda.',
     'guidance.criteria': 'Considere quando',
     'guidance.actions': 'Ações sugeridas',
     'guidance.openSource': 'Abrir fonte original',
-    'builder.nav.workspace': 'Workspace clinico',
+
+    'builder.nav.workspace': 'Workspace clínico',
     'builder.nav.builder': 'Construtor de fluxos',
+
     'builder.eyebrow': 'Autoria de fluxos',
     'builder.title': 'Construtor de fluxos',
     'builder.description':
-      'Crie a estrutura de um fluxo clinico a partir de metadados antes que ele vire um formulario renderizado.',
+      'Crie a estrutura de um fluxo clínico a partir de metadados antes que ele se torne um formulário renderizado.',
+
     'builder.detailsTitle': 'Detalhes do fluxo',
-    'builder.detailsDescription': 'Comece com identificadores estaveis e texto fonte em ingles.',
+    'builder.detailsDescription':
+      'Comece com identificadores estáveis e texto-fonte em inglês.',
+
     'builder.workflowId': 'ID do fluxo',
-    'builder.workflowTitle': 'Titulo',
-    'builder.contentLocale': 'Idioma do conteudo',
+    'builder.workflowTitle': 'Título',
+    'builder.contentLocale': 'Idioma do conteúdo',
     'builder.workflowOverview': 'Resumo',
+
     'builder.hpiTemplateTitle': 'Template da HMA',
     'builder.hpiTemplateDescription':
       'Use placeholders Liquid como {{ onset }} e filtros como {{ radiation | list: locale }}.',
+
     'builder.generatedNoteTitle': 'Nota gerada',
     'builder.generatedNoteDescription':
-      'Escreva a nota como ela deve aparecer. Clique em uma resposta para inserir no texto.',
+      'Escreva a nota como ela deve aparecer. Clique em uma resposta para inseri-la no texto.',
+
     'builder.hpiTemplate': 'Template',
     'builder.generatedNote': 'Texto da nota',
+
     'builder.hpiTemplatePlaceholder':
-      'Paciente refere {{ location }}{% if onset %} com inicio {{ onset }}{% endif %}.',
-    'builder.availableAnswers': 'Respostas disponiveis',
-    'builder.availableAnswersDescription': 'Clique em um campo para inserir a resposta do paciente na nota.',
-    'builder.emptyTemplateFields': 'Adicione campos ao fluxo antes de inserir respostas.',
-    'builder.advancedTemplateSyntax': 'Sintaxe avancada do template',
+      'Paciente refere {{ location }}{% if onset %} com início {{ onset }}{% endif %}.',
+
+    'builder.availableAnswers': 'Respostas disponíveis',
+    'builder.availableAnswersDescription':
+      'Clique em um campo para inserir a resposta do paciente na nota.',
+
+    'builder.emptyTemplateFields':
+      'Adicione campos ao fluxo antes de inserir respostas.',
+
+    'builder.advancedTemplateSyntax': 'Sintaxe avançada do template',
     'builder.advancedTemplateDescription':
-      'Use estes padroes quando uma frase deve aparecer apenas as vezes, ou quando um campo tem varias respostas.',
-    'builder.sectionsTitle': 'Secoes e campos',
-    'builder.sectionsDescription': 'Agrupe perguntas clinicas relacionadas e adicione campos a cada secao.',
-    'builder.sectionPlaceholder': 'Titulo da secao',
-    'builder.sectionTitle': 'Titulo da secao',
-    'builder.sectionId': 'ID da secao',
-    'builder.addSection': 'Adicionar secao',
-    'builder.removeSection': 'Remover secao',
-    'builder.emptySections': 'Nenhuma secao ainda. Informe um titulo acima para comecar.',
+      'Use estes padrões quando uma frase deve aparecer apenas às vezes ou quando um campo tem várias respostas.',
+
+    'builder.sectionsTitle': 'Seções e campos',
+    'builder.sectionsDescription':
+      'Agrupe perguntas clínicas relacionadas e adicione campos a cada seção.',
+
+    'builder.sectionPlaceholder': 'Título da seção',
+    'builder.sectionTitle': 'Título da seção',
+    'builder.sectionId': 'ID da seção',
+
+    'builder.addSection': 'Adicionar seção',
+    'builder.removeSection': 'Remover seção',
+
+    'builder.emptySections':
+      'Nenhuma seção ainda. Informe um título acima para começar.',
+
     'builder.fieldsCount': 'campos',
-    'builder.fieldLabelPlaceholder': 'Rotulo do campo',
+
+    'builder.fieldLabelPlaceholder': 'Rótulo do campo',
     'builder.fieldKeyPlaceholder': 'fieldKey',
+
     'builder.addField': 'Adicionar campo',
     'builder.configureField': 'Configurar',
     'builder.collapseField': 'Recolher',
     'builder.removeField': 'Remover',
-    'builder.emptyFields': 'Nenhum campo ainda. Adicione o primeiro campo abaixo.',
+
+    'builder.emptyFields':
+      'Nenhum campo ainda. Adicione o primeiro campo abaixo.',
+
     'builder.fieldDetailsTitle': 'Detalhes do campo',
-    'builder.fieldDetailsDescription': 'Configure metadados comuns e comportamento especifico do tipo.',
-    'builder.requiredField': 'Obrigatorio',
+    'builder.fieldDetailsDescription':
+      'Configure metadados comuns e comportamento específico do tipo.',
+
+    'builder.requiredField': 'Obrigatório',
     'builder.helperText': 'Texto auxiliar',
-    'builder.textSettings': 'Configuracoes de texto',
+
+    'builder.textSettings': 'Configurações de texto',
     'builder.placeholder': 'Placeholder',
     'builder.narrativePrefix': 'Prefixo narrativo',
     'builder.narrativeSuffix': 'Sufixo narrativo',
-    'builder.booleanSettings': 'Configuracoes booleanas',
-    'builder.defaultBoolean': 'Valor padrao',
+
+    'builder.booleanSettings': 'Configurações booleanas',
+    'builder.defaultBoolean': 'Valor padrão',
     'builder.defaultUnchecked': 'Desmarcado',
     'builder.defaultChecked': 'Marcado',
     'builder.narrativeWhenTrue': 'Narrativa quando marcado',
     'builder.narrativeWhenFalse': 'Narrativa quando desmarcado',
-    'builder.optionSettings': 'Opcoes',
-    'builder.addOption': 'Adicionar opcao',
-    'builder.defaultOption': 'Opcao padrao',
-    'builder.defaultOptions': 'Opcoes selecionadas por padrao',
-    'builder.noDefault': 'Sem padrao',
-    'builder.emptyOptions': 'Nenhuma opcao ainda. Adicione opcoes para o usuario escolher.',
-    'builder.optionLabelPlaceholder': 'Rotulo da opcao',
-    'builder.optionValuePlaceholder': 'valor-da-opcao',
+
+    'builder.optionSettings': 'Opções',
+    'builder.addOption': 'Adicionar opção',
+    'builder.defaultOption': 'Opção padrão',
+    'builder.defaultOptions': 'Opções selecionadas por padrão',
+    'builder.noDefault': 'Sem padrão',
+
+    'builder.emptyOptions':
+      'Nenhuma opção ainda. Adicione opções para o usuário escolher.',
+
+    'builder.optionLabelPlaceholder': 'Rótulo da opção',
+    'builder.optionValuePlaceholder': 'valor-da-opção',
     'builder.optionNarrativePlaceholder': 'Narrativa',
-    'builder.previewEyebrow': 'Previa do schema',
+
+    'builder.previewEyebrow': 'Prévia do schema',
     'builder.previewTitle': 'Objeto de fluxo gerado',
-    'builder.previewDescription': 'Esta previa segue o formato de fluxo usado pelo renderer.',
+    'builder.previewDescription':
+      'Esta prévia segue o formato de fluxo usado pelo renderer.',
+
     'builder.exportJson': 'Exportar JSON',
     'builder.importJson': 'Importar JSON',
-    'builder.importInvalid': 'Nao foi possivel importar este arquivo JSON.',
-    'builder.validationTitle': 'Validacao',
-    'builder.validationDescription': 'Verifique identificadores duplicados antes de exportar.',
-    'builder.validationNoIssues': 'Nenhum identificador duplicado detectado.',
-    'builder.validationDuplicateSectionIds': 'IDs de secao duplicados',
-    'builder.validationDuplicateFieldKeys': 'Chaves de campo duplicadas',
-    'builder.validationDuplicateOptionValues': 'Valores de opcao duplicados',
-    'builder.summarySections': 'Secoes',
+    'builder.importInvalid':
+      'Não foi possível importar este arquivo JSON.',
+
+    'builder.validationTitle': 'Validação',
+    'builder.validationDescription':
+      'Verifique identificadores duplicados antes de exportar.',
+
+    'builder.validationNoIssues':
+      'Nenhum identificador duplicado detectado.',
+
+    'builder.validationDuplicateSectionIds':
+      'IDs de seção duplicados',
+
+    'builder.validationDuplicateFieldKeys':
+      'Chaves de campo duplicadas',
+
+    'builder.validationDuplicateOptionValues':
+      'Valores de opção duplicados',
+
+    'builder.summarySections': 'Seções',
     'builder.summaryFields': 'Campos',
   },
 } satisfies Record<Locale, Record<string, string>>

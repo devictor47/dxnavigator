@@ -11,6 +11,12 @@ const { t } = useI18n()
       <a class="brand" href="/">DxNavigator</a>
       <div class="nav-actions">
         <AppPreferences />
+        <RouterLink class="nav-link" to="/auth/login">
+          {{ t('auth.login') }}
+        </RouterLink>
+        <RouterLink class="primary-action compact-action" to="/auth/register">
+          {{ t('auth.register') }}
+        </RouterLink>
       </div>
     </nav>
 

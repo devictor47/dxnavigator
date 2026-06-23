@@ -1,5 +1,7 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router'
 import LandingView from '@/views/public/LandingView.vue'
+import LoginView from '@/views/public/LoginView.vue'
+import RegisterView from '@/views/public/RegisterView.vue'
 import ComplaintView from '@/views/private/ComplaintView.vue'
 import WorkflowBuilderView from '@/views/private/WorkflowBuilderView.vue'
 
@@ -10,6 +12,16 @@ const router = createRouter({
       path: '/',
       name: 'landing',
       component: LandingView,
+    },
+    {
+      path: '/auth/login',
+      name: 'login',
+      component: LoginView,
+    },
+    {
+      path: '/auth/register',
+      name: 'register',
+      component: RegisterView,
     },
     {
       path: '/private',
@@ -26,6 +38,35 @@ const router = createRouter({
       component: WorkflowBuilderView,
     },
   ],
+})
+
+const isAuthenticated = async (): Promise<boolean> => {
+  const response = await fetch('/api/auth/me', {
+    credentials: 'include',
+  }).catch(() => null)
+
+  return response?.ok === true
+}
+
+const requiresAuthentication = (to: RouteLocationNormalized): boolean => {
+  return to.path.startsWith('/private')
+}
+
+router.beforeEach(async (to: RouteLocationNormalized) => {
+  if (!requiresAuthentication(to)) {
+    return true
+  }
+
+  if (await isAuthenticated()) {
+    return true
+  }
+
+  return {
+    name: 'login',
+    query: {
+      redirect: to.fullPath,
+    },
+  }
 })
 
 export default router

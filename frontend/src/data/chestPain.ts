@@ -9,12 +9,12 @@ const onsetField: TextField = {
   key: 'onset',
   label: {
     en: 'Onset and duration',
-    'pt-BR': 'Inicio e duracao',
+    'pt-BR': 'Início e duração',
   },
   type: 'text',
   placeholder: {
     en: 'Example: started 2 hours ago, intermittent for 3 days',
-    'pt-BR': 'Ex.: iniciou ha 2 horas, intermitente ha 3 dias',
+    'pt-BR': 'Ex.: iniciou há 2 horas, intermitente há 3 dias',
   },
   required: true,
 }
@@ -23,12 +23,12 @@ const locationField: TextField = {
   key: 'location',
   label: {
     en: 'Location or quality',
-    'pt-BR': 'Localizacao ou caracteristica',
+    'pt-BR': 'Localização ou característica',
   },
   type: 'text',
   placeholder: {
     en: 'Example: retrosternal pressure',
-    'pt-BR': 'Ex.: pressao retroesternal',
+    'pt-BR': 'Ex.: pressão retroesternal',
   },
 }
 
@@ -36,7 +36,7 @@ const radiationField: MultiselectField = {
   key: 'radiation',
   label: {
     en: 'Radiation',
-    'pt-BR': 'Irradiacao',
+    'pt-BR': 'Irradiação',
   },
   type: 'multiselect',
   helperText: {
@@ -45,14 +45,14 @@ const radiationField: MultiselectField = {
   },
   options: [
     {
-      label: { en: 'Left arm', 'pt-BR': 'Braco esquerdo' },
+      label: { en: 'Left arm', 'pt-BR': 'Braço esquerdo' },
       value: 'left-arm',
-      narrative: { en: 'left arm', 'pt-BR': 'braco esquerdo' },
+      narrative: { en: 'left arm', 'pt-BR': 'braço esquerdo' },
     },
     {
-      label: { en: 'Jaw', 'pt-BR': 'Mandibula' },
+      label: { en: 'Jaw', 'pt-BR': 'Mandíbula' },
       value: 'jaw',
-      narrative: { en: 'jaw', 'pt-BR': 'mandibula' },
+      narrative: { en: 'jaw', 'pt-BR': 'mandíbula' },
     },
     {
       label: { en: 'Back', 'pt-BR': 'Dorso' },
@@ -60,9 +60,9 @@ const radiationField: MultiselectField = {
       narrative: { en: 'back', 'pt-BR': 'dorso' },
     },
     {
-      label: { en: 'Epigastrium', 'pt-BR': 'Epigastrio' },
+      label: { en: 'Epigastrium', 'pt-BR': 'Epigástrio' },
       value: 'epigastrium',
-      narrative: { en: 'epigastrium', 'pt-BR': 'epigastrio' },
+      narrative: { en: 'epigastrium', 'pt-BR': 'epigástrio' },
     },
   ],
   defaultValue: [],
@@ -196,7 +196,7 @@ const hpiTemplate = {
     {% if fever %}Patient reports fever{% if temperature %} with recorded temperature {{ temperature }}{% endif %}.{% endif %}
   `,
   'pt-BR': `
-    Paciente refere {% if location %}{{ location }}{% else %}dor toracica{% endif %}{% if onset %} com inicio {{ onset }}{% endif %}.
+    Paciente refere {% if location %}{{ location }}{% else %}dor torácica{% endif %}{% if onset %} com início {{ onset }}{% endif %}.
     {% if radiation %}Dor irradia para {{ radiation | list: locale }}.{% endif %}
     {% assign painModifiers = exertional | compact_append: relievedByRest | compact_append: pleuritic %}
     {% if painModifiers %}Dor e {{ painModifiers | list: locale }}.{% endif %}
