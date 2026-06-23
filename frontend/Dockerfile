@@ -1,11 +1,14 @@
 FROM node:24-alpine
 
-# Create app directory
 RUN mkdir -p /workspace
 
 WORKDIR /workspace
 
 ENV NODE_ENV=development
 
-# Expose Vite default port
+COPY docker-entrypoint.sh /usr/local/bin/dxnavigator-frontend
+RUN chmod +x /usr/local/bin/dxnavigator-frontend
+
 EXPOSE 5173
+
+CMD ["dxnavigator-frontend"]

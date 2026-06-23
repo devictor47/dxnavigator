@@ -9,6 +9,7 @@ namespace DxNavigator.Api.Endpoints;
 public static class AuthEndpoints
 {
     private const string GoogleProvider = "Google";
+    private const string DuplicateEmailCode = "DuplicateEmail";
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder routes)
     {
@@ -61,9 +62,7 @@ public static class AuthEndpoints
 
         if (!result.Succeeded)
         {
-            return Results.BadRequest(new AuthErrorResponse(
-                "Registration failed.",
-                result.Errors.Select(error => error.Description).ToArray()));
+            return Results.BadRequest(ToRegistrationErrorResponse(result.Errors));
         }
 
         await signInManager.SignInAsync(user, isPersistent: true);
@@ -216,6 +215,25 @@ public static class AuthEndpoints
             user.Id,
             user.Name,
             user.Email ?? string.Empty);
+    }
+
+    private static AuthErrorResponse ToRegistrationErrorResponse(
+        IEnumerable<IdentityError> errors)
+    {
+        var errorList = errors.ToArray();
+
+        if (errorList.Any(error =>
+            error.Code is "DuplicateEmail" or "DuplicateUserName"))
+        {
+            return new AuthErrorResponse(
+                "Email is already registered.",
+                ["Email is already registered."],
+                DuplicateEmailCode);
+        }
+
+        return new AuthErrorResponse(
+            "Registration failed.",
+            errorList.Select(error => error.Description).ToArray());
     }
 
     private static bool IsGoogleConfigured(IConfiguration configuration)

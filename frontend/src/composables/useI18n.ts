@@ -37,8 +37,9 @@ const messages = {
     'auth.submitting': 'Working...',
     'auth.or': 'or',
     'auth.continueWithGoogle': 'Continue with Google',
-    'auth.loginFailed': 'Could not log in with those credentials.',
+    'auth.loginFailed': 'Incorrect email and/or password.',
     'auth.registerFailed': 'Could not create this account.',
+    'auth.emailAlreadyRegistered': 'This email is already registered.',
     'landing.nav.openWorkspace': 'Open workspace',
     'landing.eyebrow': 'Structured clinical workflows',
     'landing.description':
@@ -209,8 +210,9 @@ const messages = {
     'auth.submitting': 'Processando...',
     'auth.or': 'ou',
     'auth.continueWithGoogle': 'Continuar com o Google',
-    'auth.loginFailed': 'Não foi possível entrar com essas credenciais.',
+    'auth.loginFailed': 'Email e/ou senha incorretos.',
     'auth.registerFailed': 'Não foi possível criar esta conta.',
+    'auth.emailAlreadyRegistered': 'Este email já está cadastrado.',
 
     'landing.nav.openWorkspace': 'Abrir workspace',
     'landing.eyebrow': 'Fluxos clínicos estruturados',

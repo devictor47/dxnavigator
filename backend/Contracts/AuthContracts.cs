@@ -16,4 +16,5 @@ public sealed record CurrentUserResponse(
 
 public sealed record AuthErrorResponse(
     string Message,
-    IReadOnlyList<string> Errors);
+    IReadOnlyList<string> Errors,
+    string? Code = null);

@@ -8,6 +8,7 @@ import { useI18n } from '@/composables/useI18n'
 type AuthErrorResponse = {
   message?: string
   errors?: string[]
+  code?: string
 }
 
 const { t } = useI18n()
@@ -45,7 +46,10 @@ const register = async (): Promise<void> => {
 
     if (!response.ok) {
       const error = (await response.json().catch(() => ({}))) as AuthErrorResponse
-      errorMessage.value = error.errors?.[0] ?? error.message ?? t('auth.registerFailed')
+      errorMessage.value =
+        error.code === 'DuplicateEmail'
+          ? t('auth.emailAlreadyRegistered')
+          : error.errors?.[0] ?? error.message ?? t('auth.registerFailed')
       return
     }
 
