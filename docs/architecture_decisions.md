@@ -408,7 +408,7 @@ ports:
   - "${FRONTEND_BIND_ADDRESS:-0.0.0.0}:5173:5173"
 ```
 
-The committed `.env` sets:
+The committed `.env.example` recommends:
 
 ```env
 FRONTEND_BIND_ADDRESS=127.0.0.1
@@ -424,7 +424,7 @@ Vite allows hosts broadly for development compatibility, while exposure is contr
 
 ### Consequences
 
-Localhost development remains simple, and VPN/reverse-proxy deployment can keep Vite bound to loopback. Production deployment will need a separate hosting decision later.
+Localhost development remains simple, and VPN/reverse-proxy deployment can keep Vite bound to loopback. Production deployment uses a separate production Compose overlay.
 
 ## ADR 010: Authentication, Authorization, and Persistence Foundation
 
@@ -534,3 +534,106 @@ The next backend implementation should create:
 - Private route protection.
 
 Production deployment will need explicit HTTPS, cookie, CORS, and reverse proxy configuration. Local development may require a Vite proxy or a same-origin reverse proxy setup so cookie behavior matches production closely.
+
+## ADR 011: Docker Development and Production Overlays
+
+### Status
+
+Accepted.
+
+### Context
+
+The project needs two different Docker behaviors:
+
+- Local development should optimize for speed, hot reload, and simple cloning.
+- Deployment should avoid development servers, source bind mounts, and watcher-based runtimes.
+
+The frontend is a Vite application. Vite provides a production build step, but the build output is static files in `dist/`; Vite does not remove the need for a production static file server.
+
+### Decision
+
+Docker Compose is split into:
+
+- `docker-compose.yml` for shared services and common configuration.
+- `docker-compose.override.yml` for local development.
+- `docker-compose.prod.yml` for production-like deployment.
+
+Development remains the default:
+
+```bash
+docker compose up -d --build
+```
+
+Production-like deployment is explicit:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+```
+
+The development overlay uses source bind mounts, Vite, `dotnet watch`, npm cache, and NuGet cache.
+
+The production overlay builds immutable containers:
+
+- ASP.NET Core is published and run from the .NET runtime image.
+- Vue is built into static files.
+- nginx serves the built Vue files from `dist/`.
+- nginx handles SPA fallback routing by serving `index.html` for unknown frontend paths.
+- nginx proxies `/api` to the backend through the Docker network.
+
+Machine-specific values live in `.env`, which is ignored by Git. Safe defaults live in `.env.example`.
+
+The production request path is:
+
+```text
+Browser
+  -> HTTPS reverse proxy, currently host Caddy
+  -> frontend container, nginx
+  -> /api requests proxied to backend container
+  -> PostgreSQL
+```
+
+The backend container is not exposed on a host port in production-like mode by default.
+
+### Rationale
+
+Environment variables are good for values such as ports, bind addresses, credentials, and OAuth secrets. They are not a good fit for switching container behavior between hot reload development and production serving.
+
+nginx is intentionally used only in the production frontend image. It is not part of the development frontend image.
+
+The project considered these alternatives:
+
+- Keep using Vite for deployment. This is simple, but it keeps a development-oriented server in the public serving path.
+- Use `vite preview`. This previews production builds locally, but it is not intended to be the main public production server.
+- Use Node with a static serving package. This keeps the runtime in the Node ecosystem, but still introduces an extra package and gives less built-in reverse proxy/static serving behavior than nginx.
+- Let ASP.NET Core serve the frontend build. This reduces container count, but it couples frontend hosting to the API container and requires the backend image to own the frontend build artifacts.
+- Let host Caddy serve static files directly. This is clean for one server, but moves more deployment responsibility outside Docker Compose and makes clone-and-run deployment less self-contained.
+
+nginx was accepted because it is small, common, boring infrastructure for static files and reverse proxying. It gives the production frontend container one clear job: serve the compiled Vue app and forward API requests internally.
+
+Compose overlays keep those concerns separate:
+
+- Developers can clone and run the app without learning deployment flags.
+- The VPN can keep local port choices without creating Git noise.
+- Production-like containers avoid source mounts and development servers.
+- Caddy can keep using one public frontend entrypoint while nginx forwards API calls internally.
+
+### Rules
+
+- Do not use Vite dev server as the production frontend server.
+- Do not expose the backend on a host port in production-like mode unless there is a deliberate debugging need.
+- Keep Caddy responsible for public HTTPS termination on the VPS.
+- Keep nginx responsible only for serving frontend static files and proxying `/api` inside Docker.
+- Keep machine-specific ports, bind addresses, and secrets in `.env`, not in tracked Compose files.
+- Do not put OAuth secrets, database passwords, or production domain values in tracked Compose files.
+
+### Consequences
+
+The backend is no longer exposed on a host port in production-like mode by default. API traffic should flow through the frontend entrypoint and nginx `/api` proxy.
+
+The production-like deployment has one additional runtime component: nginx in the frontend container. This is an accepted dependency, not an accidental one.
+
+If the frontend later moves to Cloudflare Pages or another static host, this decision should be revisited. In that architecture, cookie auth and same-origin assumptions must be rechecked carefully.
+
+Because API requests are same-origin through nginx, future auth cookies should be configured with this request path in mind.
+
+`DATABASE_ENSURE_CREATED=true` remains available during the early stage so a fresh PostgreSQL volume can boot without migrations. This should be replaced by EF Core migrations before treating the deployment as real production.

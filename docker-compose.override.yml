@@ -1,0 +1,37 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Database__EnsureCreated: "true"
+
+    volumes:
+      - ./backend:/workspace
+      - nuget_cache:/root/.nuget/packages
+
+    ports:
+      - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+
+    environment:
+      NPM_CONFIG_CACHE: /root/.npm
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+
+    volumes:
+      - ./frontend:/workspace
+      - /workspace/node_modules
+      - npm_cache:/root/.npm
+
+    ports:
+      - "${FRONTEND_BIND_ADDRESS:-0.0.0.0}:5173:5173"
+
+volumes:
+  npm_cache:
+  nuget_cache:

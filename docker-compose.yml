@@ -1,4 +1,4 @@
-services: # Collection of containers that compose the application
+services:
 
   postgres:
     image: postgres:17-alpine
@@ -21,53 +21,23 @@ services: # Collection of containers that compose the application
       retries: 10
 
   backend:
-    build:
-      context: ./backend
-
     depends_on:
       postgres:
         condition: service_healthy
 
     environment:
-      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=${POSTGRES_DB:-dxnavigator};Username=${POSTGRES_USER:-dxnavigator};Password=${POSTGRES_PASSWORD:-dxnavigator_dev_password}
       Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       Authentication__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
 
     volumes:
-      - ./backend:/workspace
-      - nuget_cache:/root/.nuget/packages
+      - data_protection_keys:/root/.aspnet/DataProtection-Keys
 
-    ports:
-      - "${BACKEND_BIND_ADDRESS:-127.0.0.1}:${BACKEND_PORT:-8080}:8080"
-
-  frontend: # Vue/Vite frontend container
-
-    build:
-      context: ./frontend # Dockerfile and build files are located in ./frontend
-
-    environment:
-      - NPM_CONFIG_CACHE=/root/.npm
-      - CHOKIDAR_USEPOLLING=true # Force vite hot-reload
-      - WATCHPACK_POLLING=true # Force vite hot-reload
-
-    volumes:
-      # Bind mount:
-      # Changes made locally are immediately visible inside the container,
-      # enabling hot reload during development.
-      - ./frontend:/workspace
-      - /workspace/node_modules
-      - npm_cache:/root/.npm
-
-    ports:
-      # Port mapping format:
-      # <host_port>:<container_port>
-      #
-      # Accessing http://localhost:5173 on the host forwards
-      # traffic to port 5173 inside the container.
-      - "${FRONTEND_BIND_ADDRESS:-0.0.0.0}:5173:5173"
+  frontend:
+    depends_on:
+      - backend
 
 volumes:
-  npm_cache:
-  nuget_cache:
+  data_protection_keys:
   postgres_data:
