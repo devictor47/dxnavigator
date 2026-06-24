@@ -23,7 +23,9 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
-const isSidebarCollapsed = ref(false)
+const isSidebarCollapsed = ref(
+  typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)').matches : false,
+)
 const isAccountMenuOpen = ref(false)
 const accountElement = ref<HTMLElement | null>(null)
 const currentUser = ref<{
