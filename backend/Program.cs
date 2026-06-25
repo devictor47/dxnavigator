@@ -40,7 +40,9 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.Name = "DxNavigator.Auth";
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.LoginPath = "/auth/login";
     options.AccessDeniedPath = "/auth/login";
 
@@ -107,23 +109,26 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.Use(async (context, next) =>
+if (!app.Environment.IsDevelopment())
 {
-    if (!context.Request.IsHttps)
+    app.Use(async (context, next) =>
     {
-        var redirectUrl = UriHelper.BuildAbsolute(
-            "https",
-            context.Request.Host,
-            context.Request.PathBase,
-            context.Request.Path,
-            context.Request.QueryString);
+        if (!context.Request.IsHttps)
+        {
+            var redirectUrl = UriHelper.BuildAbsolute(
+                "https",
+                context.Request.Host,
+                context.Request.PathBase,
+                context.Request.Path,
+                context.Request.QueryString);
 
-        context.Response.Redirect(redirectUrl, permanent: true);
-        return;
-    }
+            context.Response.Redirect(redirectUrl, permanent: true);
+            return;
+        }
 
-    await next();
-});
+        await next();
+    });
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

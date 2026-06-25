@@ -7,7 +7,14 @@ defineProps<{
 </script>
 
 <template>
-  <span class="field-hint" tabindex="0" :aria-label="message">
+  <span
+    class="field-hint"
+    tabindex="0"
+    :aria-label="message"
+    @click.prevent.stop
+    @pointerdown.prevent.stop
+    @touchstart.stop
+  >
     <CircleHelp :size="16" aria-hidden="true" />
     <span class="field-hint-popover" role="tooltip">{{ message }}</span>
   </span>

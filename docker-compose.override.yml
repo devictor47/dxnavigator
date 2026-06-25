@@ -23,6 +23,7 @@ services:
       NPM_CONFIG_CACHE: /root/.npm
       CHOKIDAR_USEPOLLING: "true"
       WATCHPACK_POLLING: "true"
+      FRONTEND_PROXY_PROTO: ${FRONTEND_PROXY_PROTO:-http}
 
     volumes:
       - ./frontend:/workspace

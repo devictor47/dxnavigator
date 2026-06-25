@@ -487,6 +487,7 @@ Authorization will use secure cookie-based authentication. The app should lean t
 
 - HTTP-only authentication cookies.
 - Secure cookies in deployed environments.
+- In development, cookies may follow the current request scheme so LAN device testing over HTTP works.
 - SameSite configured deliberately for the frontend/backend deployment shape.
 - HTTPS for all public traffic.
 - Direct HTTP requests should redirect to HTTPS instead of being served.
@@ -498,6 +499,7 @@ Google will be the first external login provider. External login secrets must no
 
 - Do not implement custom password hashing.
 - Do not store authentication tokens in browser local storage.
+- Do not relax secure cookie behavior outside development.
 - Do not require email confirmation for login in the initial version.
 - Do require unique email addresses.
 - Use email as the username for local accounts.
@@ -799,3 +801,71 @@ The workflow builder should eventually create workflow definitions with simple s
 Marketplace upload should request or infer metadata such as language, tags, specialty, care setting, and description.
 
 If public workflow pages become searchable, slugs can improve readability and SEO while public IDs preserve stable routing.
+
+## ADR 013: Preset CRUD Belongs in the Workflow View
+
+### Status
+
+Accepted.
+
+### Context
+
+Workflow presets started as predefined shortcuts bundled with a clinical workflow. They let a physician load a common form state quickly, then adjust the answers for the patient in front of them.
+
+As workflows grow, presets become part of day-to-day clinical use rather than only workflow-authoring metadata. A physician is most likely to discover a useful preset while interacting with the actual workflow form.
+
+The project does not yet have backend workflow persistence, so early preset CRUD needs to be useful without overcommitting to the final database model.
+
+### Decision
+
+Preset create, update, and delete controls should live inside the workflow view, near the preset selector.
+
+The workflow builder may still expose preset metadata later, but the primary preset editing experience belongs where the user is filling out the form.
+
+The workflow view should support:
+
+- Loading a preset into the current workflow session.
+- Saving the current form state as a preset.
+- Editing preset title and description.
+- Removing a preset.
+
+Saving follows the active preset state:
+
+- If no preset is active, saving creates a new preset from the current form answers.
+- If a preset is active and the form has changed, saving opens a dialog asking whether to replace the active preset or save the current answers as a new preset.
+- If a preset is active and unchanged, saving may be disabled or show that there are no changes to save.
+
+The save flow should not include a separate "replace answers with current form state" option. The current form state is always the thing being saved.
+
+Until backend persistence exists, user-created and edited presets may be stored in localStorage, keyed by workflow identity. Bundled presets and user presets are merged for display.
+
+### Rules
+
+- Presets remain workflow-specific.
+- Preset titles and descriptions are user-facing text.
+- Preset answer keys must match workflow field keys.
+- Loading a preset replaces the current workflow session state.
+- Saving a preset captures the current workflow session answers.
+- Editing a preset changes metadata, not the current form answers.
+- Removing a preset should require confirmation.
+- Bundled presets should not be permanently mutated in source code by normal app usage.
+- Local preset persistence is temporary and should be replaced by backend persistence later.
+
+### Rationale
+
+Preset CRUD in the workflow view matches the physician's mental model: interact with the form, tune it into a useful state, then save that state as a shortcut.
+
+Keeping the save action tied to the current form state avoids a separate and confusing "replace answers" mode. The distinction that matters is whether the current state replaces the loaded preset or becomes a new preset.
+
+LocalStorage provides enough behavior to test the interaction model before committing to database tables and ownership rules.
+
+### Consequences
+
+The workflow view needs to track:
+
+- The active preset ID.
+- A baseline copy of the active preset answers.
+- Whether the current answers differ from the active preset baseline.
+- Locally persisted user preset overrides and deletions.
+
+Future backend persistence should map these actions to create, update, and delete preset operations. The frontend interaction model should remain mostly unchanged when storage moves from localStorage to the backend.

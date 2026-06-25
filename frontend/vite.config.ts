@@ -4,6 +4,8 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
+const forwardedProto = process.env.FRONTEND_PROXY_PROTO ?? 'http'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -18,7 +20,7 @@ export default defineConfig({
         target: 'http://backend:8080',
         changeOrigin: true,
         headers: {
-          'X-Forwarded-Proto': 'https',
+          'X-Forwarded-Proto': forwardedProto,
         },
       },
     },

@@ -630,6 +630,7 @@ p {
   align-items: flex-start;
   gap: 8px;
   transform: translateY(-50%);
+  pointer-events: none;
   user-select: none;
 }
 
@@ -647,6 +648,7 @@ p {
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.04em;
+  pointer-events: auto;
   text-transform: uppercase;
 }
 
@@ -894,40 +896,102 @@ p {
   background: var(--color-surface-muted);
 }
 
+.preset-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.preset-header .secondary-action {
+  flex: 0 0 auto;
+}
+
+.preset-dirty-note {
+  padding: 10px 12px;
+  border: 1px solid var(--color-primary-focus);
+  border-radius: 8px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .preset-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 10px;
 }
 
-.preset-button {
-  display: grid;
-  gap: 6px;
-  width: 100%;
-  min-height: 92px;
-  padding: 14px;
+.preset-card {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
-  color: var(--color-text);
-  text-align: left;
-  cursor: pointer;
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
     transform 160ms ease;
 }
 
-.preset-button:hover,
-.preset-button.selected {
+.preset-card:hover,
+.preset-card.selected {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-popover);
   transform: translateY(-1px);
 }
 
+.preset-button {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  min-height: 92px;
+  padding: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
 .preset-button span {
   color: var(--color-text-muted);
   line-height: 1.4;
+}
+
+.preset-card-actions {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 8px;
+}
+
+.preset-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-muted);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.preset-icon-button:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-strong);
+}
+
+.preset-icon-button.danger:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .section-description,
@@ -1193,6 +1257,35 @@ p {
   align-items: start;
 }
 
+.builder-mode-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: fit-content;
+  padding: 6px;
+  margin-bottom: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.builder-mode-tab {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.builder-mode-tab:hover,
+.builder-mode-tab.selected {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
 .builder-main,
 .builder-section-list {
   display: grid;
@@ -1201,6 +1294,7 @@ p {
 
 .builder-card,
 .builder-preview,
+.builder-json-view,
 .builder-section {
   display: grid;
   gap: 18px;
@@ -1208,6 +1302,15 @@ p {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
+}
+
+.builder-rendered-preview {
+  display: grid;
+  gap: 18px;
+}
+
+.compact-preview-header {
+  max-width: 920px;
 }
 
 .builder-preview {
@@ -1872,6 +1975,7 @@ p {
 
   .builder-card,
   .builder-preview,
+  .builder-json-view,
   .builder-section,
   .form-section,
   .hpi-preview,
@@ -1901,8 +2005,17 @@ p {
 }
 
 @media (max-width: 560px) {
+  .builder-mode-tabs {
+    width: 100%;
+  }
+
+  .builder-mode-tab {
+    flex: 1 1 96px;
+  }
+
   .top-nav,
   .nav-actions,
+  .preset-header,
   .preview-header,
   .preview-row,
   .form-card-header,

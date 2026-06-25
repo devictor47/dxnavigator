@@ -2,16 +2,30 @@
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
+import ClinicalGuidanceLibrary from '@/components/ClinicalGuidanceLibrary.vue'
+import DifferentialList from '@/components/DifferentialList.vue'
+import DynamicClinicalForm from '@/components/DynamicClinicalForm.vue'
 import FieldHint from '@/components/FieldHint.vue'
+import HpiPreview from '@/components/HpiPreview.vue'
 import PrivateWorkspaceShell from '@/components/PrivateWorkspaceShell.vue'
+import RedFlagList from '@/components/RedFlagList.vue'
+import WorkupList from '@/components/WorkupList.vue'
 import { useI18n } from '@/composables/useI18n'
 import { useNotifications } from '@/composables/useNotifications'
 import { getClinicalModuleById } from '@/data/modules'
-import type { ModuleField } from '@/data/workflow'
+import {
+  createWorkflowSession,
+  type ClinicalWorkflow,
+  type ModuleAnswers,
+  type ModuleField,
+  type WorkflowPreset,
+  type WorkflowSession,
+} from '@/data/workflow'
 import { locales, type Locale } from '@/i18n/locales'
 
 type BuilderFieldType = ModuleField['type']
 type DisplayEqualsKind = 'string' | 'boolean' | 'stringArray'
+type BuilderMode = 'edit' | 'preview' | 'json'
 
 type DraftClinicalItem = {
   uid: string
@@ -145,6 +159,7 @@ const expandedFieldUid = ref<string | null>(null)
 const importFileInput = ref<HTMLInputElement | null>(null)
 const hpiTemplateInput = ref<HTMLTextAreaElement | null>(null)
 const importError = ref('')
+const activeBuilderMode = ref<BuilderMode>('edit')
 
 const fieldTypes: BuilderFieldType[] = ['text', 'boolean', 'select', 'multiselect']
 let nextDraftUid = 1
@@ -454,6 +469,22 @@ const readStringArray = (value: unknown): string[] => {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === 'string')
     : []
+}
+
+const isModuleAnswerValue = (value: unknown): value is ModuleAnswers[string] => {
+  return (
+    typeof value === 'string' ||
+    typeof value === 'boolean' ||
+    (Array.isArray(value) && value.every((item) => typeof item === 'string'))
+  )
+}
+
+const readModuleAnswers = (value: Record<string, unknown>): ModuleAnswers => {
+  return Object.fromEntries(
+    Object.entries(value).filter((entry): entry is [string, ModuleAnswers[string]] =>
+      isModuleAnswerValue(entry[1]),
+    ),
+  )
 }
 
 const splitLines = (value: string): string[] =>
@@ -795,17 +826,17 @@ const createSourceFigurePreview = (figure: DraftSourceFigure) => ({
   ...(figure.altText ? { altText: figure.altText } : {}),
 })
 
-const parsePresetAnswers = (preset: DraftPreset) => {
+const parsePresetAnswers = (preset: DraftPreset): ModuleAnswers => {
   const parsedValue = JSON.parse(preset.answersJson || '{}')
 
   if (!isRecord(parsedValue)) {
     throw new Error('Preset answers must be a JSON object.')
   }
 
-  return parsedValue
+  return readModuleAnswers(parsedValue)
 }
 
-const parsePresetAnswersSafely = (preset: DraftPreset) => {
+const parsePresetAnswersSafely = (preset: DraftPreset): ModuleAnswers => {
   try {
     return parsePresetAnswers(preset)
   } catch {
@@ -818,9 +849,9 @@ const createPresetPreview = (preset: DraftPreset) => ({
   title: preset.title,
   ...(preset.description ? { description: preset.description } : {}),
   answers: parsePresetAnswersSafely(preset),
-})
+}) satisfies WorkflowPreset
 
-const workflowPreview = computed(() => ({
+const workflowPreview = computed<ClinicalWorkflow>(() => ({
   id: draft.id,
   language: authoringLocale.value,
   ...(draft.slug ? { slug: draft.slug } : {}),
@@ -831,7 +862,7 @@ const workflowPreview = computed(() => ({
     id: section.id,
     title: section.title,
     ...(section.description ? { description: section.description } : {}),
-    fields: section.fields.map(createFieldPreview),
+    fields: section.fields.map(createFieldPreview) as ModuleField[],
   })),
   redFlags: draft.redFlags.map(createClinicalItemPreview),
   differentials: draft.differentials.map(createClinicalItemPreview),
@@ -847,6 +878,12 @@ const workflowPreview = computed(() => ({
 }))
 
 const formattedPreview = computed(() => JSON.stringify(workflowPreview.value, null, 2))
+const previewSession = ref<WorkflowSession>(createWorkflowSession(workflowPreview.value))
+const generatedPreviewHpi = computed(() => previewSession.value.generateHpi(authoringLocale.value))
+
+watch(workflowPreview, (workflow) => {
+  previewSession.value = createWorkflowSession(workflow)
+})
 
 const allFieldKeys = computed(() =>
   draft.sections.flatMap((section) => section.fields.map((field) => field.key).filter(Boolean)),
@@ -963,7 +1000,40 @@ const validationMessages = computed(() => {
         <p>{{ t('builder.description') }}</p>
       </header>
 
-      <div class="builder-layout">
+      <div class="builder-mode-tabs" role="tablist" aria-label="Builder mode">
+        <button
+          class="builder-mode-tab"
+          :class="{ selected: activeBuilderMode === 'edit' }"
+          type="button"
+          role="tab"
+          :aria-selected="activeBuilderMode === 'edit'"
+          @click="activeBuilderMode = 'edit'"
+        >
+          {{ t('builder.modeEdit') }}
+        </button>
+        <button
+          class="builder-mode-tab"
+          :class="{ selected: activeBuilderMode === 'preview' }"
+          type="button"
+          role="tab"
+          :aria-selected="activeBuilderMode === 'preview'"
+          @click="activeBuilderMode = 'preview'"
+        >
+          {{ t('builder.modePreview') }}
+        </button>
+        <button
+          class="builder-mode-tab"
+          :class="{ selected: activeBuilderMode === 'json' }"
+          type="button"
+          role="tab"
+          :aria-selected="activeBuilderMode === 'json'"
+          @click="activeBuilderMode = 'json'"
+        >
+          {{ t('builder.modeJson') }}
+        </button>
+      </div>
+
+      <div v-if="activeBuilderMode === 'edit'" class="builder-layout">
         <section class="builder-main" aria-label="Workflow builder form">
           <section class="builder-card">
             <div class="section-heading">
@@ -1788,10 +1858,97 @@ const validationMessages = computed(() => {
               </strong>
             </div>
           </div>
-
-          <pre class="schema-preview">{{ formattedPreview }}</pre>
         </aside>
       </div>
+
+      <section
+        v-else-if="activeBuilderMode === 'preview'"
+        class="builder-rendered-preview"
+        aria-labelledby="builder-rendered-preview-title"
+      >
+        <header class="complaint-header compact-preview-header">
+          <p class="eyebrow">{{ t('builder.modePreview') }}</p>
+          <h1 id="builder-rendered-preview-title">{{ workflowPreview.title }}</h1>
+          <p>{{ workflowPreview.overview }}</p>
+        </header>
+
+        <div class="clinical-workbench">
+          <HpiPreview :narrative="generatedPreviewHpi" :sticky="false" />
+
+          <section class="form-card" aria-labelledby="builder-preview-form-title">
+            <div class="form-card-header">
+              <div>
+                <p class="eyebrow">{{ t('workspace.formEyebrow') }}</p>
+                <h2 id="builder-preview-form-title">{{ t('workspace.formTitle') }}</h2>
+              </div>
+            </div>
+
+            <div class="form-card-scroll">
+              <DynamicClinicalForm :session="previewSession" />
+
+              <div class="workflow-grid guidance-grid">
+                <RedFlagList :red-flags="workflowPreview.redFlags" />
+                <DifferentialList :differentials="workflowPreview.differentials" />
+                <WorkupList :workup="workflowPreview.workup" />
+              </div>
+
+              <ClinicalGuidanceLibrary
+                :quick-guides="workflowPreview.quickGuides"
+                :source-figures="workflowPreview.sourceFigures"
+              />
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section v-else class="builder-json-view" aria-labelledby="builder-json-title">
+        <div class="builder-card-header">
+          <div class="section-heading">
+            <p class="eyebrow">{{ t('builder.previewEyebrow') }}</p>
+            <h2 id="builder-json-title">{{ t('builder.previewTitle') }}</h2>
+            <p class="section-description">{{ t('builder.previewDescription') }}</p>
+          </div>
+
+          <div class="builder-row-actions">
+            <button
+              class="secondary-action compact-action"
+              type="button"
+              @click="downloadWorkflowJson"
+            >
+              {{ t('builder.exportJson') }}
+            </button>
+            <button class="secondary-action compact-action" type="button" @click="triggerImport">
+              {{ t('builder.importJson') }}
+            </button>
+            <input
+              ref="importFileInput"
+              class="visually-hidden"
+              type="file"
+              accept="application/json,.json"
+              @change="importWorkflowJson"
+            />
+          </div>
+        </div>
+
+        <p v-if="importError" class="builder-error">{{ importError }}</p>
+
+        <section class="builder-validation" aria-live="polite">
+          <div class="section-heading">
+            <h3>{{ t('builder.validationTitle') }}</h3>
+            <p class="section-description">{{ t('builder.validationDescription') }}</p>
+          </div>
+
+          <p v-if="validationMessages.length === 0" class="builder-valid">
+            {{ t('builder.validationNoIssues') }}
+          </p>
+
+          <ul v-else class="builder-validation-list">
+            <li v-for="message in validationMessages" :key="message">{{ message }}</li>
+          </ul>
+        </section>
+
+        <pre class="schema-preview">{{ formattedPreview }}</pre>
+      </section>
     </section>
   </PrivateWorkspaceShell>
 </template>
