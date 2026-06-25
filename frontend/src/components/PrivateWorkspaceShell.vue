@@ -2,6 +2,7 @@
 import {
   ClipboardList,
   LogOut,
+  Menu,
   PanelLeftClose,
   PanelLeftOpen,
   Stethoscope,
@@ -78,6 +79,16 @@ const toggleAccountMenu = (): void => {
   isAccountMenuOpen.value = !isAccountMenuOpen.value
 }
 
+const closeSidebarOnMobile = (): void => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  if (window.matchMedia('(max-width: 860px)').matches) {
+    isSidebarCollapsed.value = true
+  }
+}
+
 const handleDocumentClick = (event: MouseEvent): void => {
   if (!accountElement.value?.contains(event.target as Node)) {
     closeAccountMenu()
@@ -104,6 +115,24 @@ onBeforeUnmount(() => {
 
 <template>
   <main class="workspace-page" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
+    <button
+      class="mobile-sidebar-toggle"
+      type="button"
+      :aria-label="t('sidebar.expand')"
+      :title="t('sidebar.expand')"
+      @click="isSidebarCollapsed = false"
+    >
+      <Menu :size="20" aria-hidden="true" />
+    </button>
+
+    <button
+      v-if="!isSidebarCollapsed"
+      class="mobile-sidebar-backdrop"
+      type="button"
+      :aria-label="t('sidebar.collapse')"
+      @click="isSidebarCollapsed = true"
+    />
+
     <aside class="workspace-sidebar">
       <div class="sidebar-top">
         <RouterLink class="brand sidebar-brand" to="/" title="DxNavigator">
@@ -123,7 +152,7 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <div class="sidebar-scroll">
+      <div class="sidebar-scroll" @click="closeSidebarOnMobile">
         <nav class="app-section-nav" aria-label="Application sections">
           <RouterLink
             class="complaint-option"

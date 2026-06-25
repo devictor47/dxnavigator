@@ -403,6 +403,11 @@ p {
   transition: grid-template-columns 180ms ease;
 }
 
+.mobile-sidebar-toggle,
+.mobile-sidebar-backdrop {
+  display: none;
+}
+
 .workspace-page.sidebar-collapsed {
   grid-template-columns: 72px minmax(0, 1fr);
 }
@@ -426,6 +431,10 @@ p {
   height: 100vh;
   overflow: auto;
   padding: 28px;
+}
+
+.workspace-content * {
+  min-width: 0;
 }
 
 .sidebar-top,
@@ -843,6 +852,10 @@ p {
 .preview-action-button[aria-pressed='true'] {
   background: var(--color-teal);
   color: var(--color-white);
+}
+
+.mobile-preview-expand {
+  display: none;
 }
 
 .form-card {
@@ -1341,6 +1354,7 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  max-width: 100%;
   min-height: 36px;
   padding: 0 10px;
   border: 1px solid var(--color-primary-focus);
@@ -1355,6 +1369,7 @@ p {
   color: var(--color-text-muted);
   font-size: 0.78rem;
   font-weight: 700;
+  overflow-wrap: anywhere;
 }
 
 .advanced-template-help {
@@ -1625,6 +1640,8 @@ p {
   color: var(--color-text);
   font-size: 0.82rem;
   line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .clinical-section {
@@ -1696,7 +1713,7 @@ p {
   }
 
   .workspace-page {
-    grid-template-columns: 72px minmax(0, 1fr);
+    display: block;
     align-items: start;
     min-height: 100dvh;
     height: auto;
@@ -1708,37 +1725,84 @@ p {
   }
 
   .workspace-sidebar {
-    position: sticky;
-    top: 0;
-    align-self: start;
-    height: 100dvh;
-    padding-inline: 12px;
-  }
-
-  .workspace-page:not(.sidebar-collapsed) .workspace-sidebar {
     position: fixed;
     inset: 0 auto 0 0;
-    z-index: 16;
-    width: min(260px, calc(100vw - 56px));
+    z-index: 18;
+    width: min(280px, calc(100vw - 48px));
+    height: 100dvh;
+    padding-inline: 12px;
     box-shadow: var(--shadow-popover);
+    transform: translateX(0);
+    transition: transform 180ms ease;
+  }
+
+  .workspace-page.sidebar-collapsed .workspace-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .mobile-sidebar-toggle {
+    position: fixed;
+    z-index: 13;
+    top: 12px;
+    left: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    min-height: 42px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-popover);
+    color: var(--color-text);
+    cursor: pointer;
+  }
+
+  .workspace-page:not(.sidebar-collapsed) .mobile-sidebar-toggle {
+    display: none;
+  }
+
+  .workspace-page:not(.sidebar-collapsed) .mobile-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 17;
+    display: block;
+    border: 0;
+    background: rgb(15 23 42 / 0.36);
+    cursor: pointer;
   }
 
   .workspace-page.sidebar-collapsed .sidebar-top {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-items: stretch;
   }
 
   .workspace-page.sidebar-collapsed .complaint-option {
-    justify-content: center;
-    width: 44px;
-    padding: 0;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 8px 10px;
   }
 
   .workspace-content {
     min-height: 100dvh;
     height: auto;
     overflow: visible;
-    padding: 28px 18px;
+    padding: 68px 14px 28px;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .workspace-page.sidebar-collapsed .brand-label,
+  .workspace-page.sidebar-collapsed .nav-label,
+  .workspace-page.sidebar-collapsed .sidebar-section-heading,
+  .workspace-page.sidebar-collapsed .user-copy {
+    display: block;
+  }
+
+  .workspace-page.sidebar-collapsed .sidebar-scroll,
+  .workspace-page.sidebar-collapsed .app-section-nav,
+  .workspace-page.sidebar-collapsed .complaint-options {
+    justify-items: stretch;
   }
 
   .hpi-preview {
@@ -1746,9 +1810,89 @@ p {
     resize: none;
   }
 
+  .hpi-preview .section-description {
+    display: none;
+  }
+
+  .mobile-preview-expand {
+    display: inline-flex;
+  }
+
+  .hpi-preview:not(.expanded) .generated-note {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .page-summary {
+    top: auto;
+    right: 50%;
+    bottom: 16px;
+    flex-direction: column-reverse;
+    align-items: center;
+    transform: translateX(50%);
+  }
+
+  .page-summary-label {
+    writing-mode: horizontal-tb;
+    transform: none;
+    border-right: 1px solid var(--color-primary-focus);
+    border-left: 4px solid var(--color-primary);
+    border-radius: 8px;
+  }
+
+  .page-summary-panel {
+    width: min(360px, calc(100vw - 28px));
+    max-height: min(420px, calc(100dvh - 120px));
+    transform: translateY(8px);
+  }
+
+  .page-summary.open .page-summary-panel {
+    transform: translateY(0);
+  }
+
   .builder-preview {
     position: static;
     max-height: none;
+  }
+
+  .builder-form-grid,
+  .builder-section-edit,
+  .builder-inline-add,
+  .builder-field-row,
+  .builder-option-row,
+  .field-add-row,
+  .marketplace-metrics,
+  .option-grid,
+  .preset-list,
+  .field-list {
+    grid-template-columns: 1fr;
+  }
+
+  .builder-card,
+  .builder-preview,
+  .builder-section,
+  .form-section,
+  .hpi-preview,
+  .guidance-library,
+  .clinical-section,
+  .marketplace-card {
+    padding: 16px;
+  }
+
+  .form-card-scroll {
+    padding: 16px;
+  }
+
+  .builder-row-actions {
+    justify-content: flex-start;
+  }
+
+  .builder-row-actions .secondary-action,
+  .builder-row-actions .primary-action,
+  .builder-row-actions .danger-action {
+    flex: 1 1 160px;
   }
 
   .field-add-row {
