@@ -10,19 +10,16 @@ import {
   type TextField,
   type WorkflowSession,
 } from '@/data/workflow'
-import { resolveText, type TranslatableText } from '@/i18n/locales'
 
 defineProps<{
   session: WorkflowSession
   highlightedAnswers?: ModuleAnswers
 }>()
 
-const { locale, t } = useI18n()
+const { t } = useI18n()
 
-const text = (value: TranslatableText): string => resolveText(value, locale.value)
-
-const optionalText = (value?: TranslatableText): string => {
-  return value ? text(value) : ''
+const optionalText = (value?: string): string => {
+  return value ?? ''
 }
 
 const getMultiselectValue = (value: ModuleAnswerValue | undefined): string[] => {
@@ -73,7 +70,10 @@ const updateMultiselect = (
   const currentValue = getMultiselectValue(session.getAnswer(field.key))
 
   if (currentValue.includes(optionValue)) {
-    session.setAnswer(field.key, currentValue.filter((value) => value !== optionValue))
+    session.setAnswer(
+      field.key,
+      currentValue.filter((value) => value !== optionValue),
+    )
     return
   }
 
@@ -90,7 +90,7 @@ const updateMultiselect = (
       class="form-section"
     >
       <div class="section-heading">
-        <h2>{{ text(section.title) }}</h2>
+        <h2>{{ section.title }}</h2>
         <p v-if="optionalText(section.description)" class="section-description">
           {{ optionalText(section.description) }}
         </p>
@@ -106,7 +106,7 @@ const updateMultiselect = (
           :data-field-key="field.key"
         >
           <legend :class="{ 'visually-hidden': field.type === 'boolean' }">
-            {{ text(field.label) }}
+            {{ field.label }}
             <span v-if="field.required" aria-label="required">*</span>
           </legend>
           <p v-if="optionalText(field.helperText)" class="field-helper">
@@ -116,7 +116,9 @@ const updateMultiselect = (
           <input
             v-if="field.type === 'text'"
             class="text-input"
-            :class="{ 'preset-highlighted-control': isHighlightedTextLike(highlightedAnswers, field) }"
+            :class="{
+              'preset-highlighted-control': isHighlightedTextLike(highlightedAnswers, field),
+            }"
             type="text"
             :data-field-input="field.key"
             :placeholder="optionalText(field.placeholder)"
@@ -127,7 +129,9 @@ const updateMultiselect = (
           <label
             v-else-if="field.type === 'boolean'"
             class="check-option single-check"
-            :class="{ 'preset-highlighted-control': isHighlightedBoolean(highlightedAnswers, field) }"
+            :class="{
+              'preset-highlighted-control': isHighlightedBoolean(highlightedAnswers, field),
+            }"
           >
             <input
               type="checkbox"
@@ -135,7 +139,7 @@ const updateMultiselect = (
               :checked="session.getAnswer(field.key) === true"
               @change="updateBoolean(session, field, $event)"
             />
-            <span>{{ text(field.label) }}</span>
+            <span>{{ field.label }}</span>
           </label>
 
           <div v-else-if="field.type === 'multiselect'" class="option-grid">
@@ -143,7 +147,13 @@ const updateMultiselect = (
               v-for="option in field.options"
               :key="option.value"
               class="check-option"
-              :class="{ 'preset-highlighted-control': isHighlightedOption(highlightedAnswers, field, option.value) }"
+              :class="{
+                'preset-highlighted-control': isHighlightedOption(
+                  highlightedAnswers,
+                  field,
+                  option.value,
+                ),
+              }"
             >
               <input
                 type="checkbox"
@@ -152,21 +162,23 @@ const updateMultiselect = (
                 :checked="getMultiselectValue(session.getAnswer(field.key)).includes(option.value)"
                 @change="updateMultiselect(session, field, option.value)"
               />
-              <span>{{ text(option.label) }}</span>
+              <span>{{ option.label }}</span>
             </label>
           </div>
 
           <select
             v-else-if="field.type === 'select'"
             class="text-input"
-            :class="{ 'preset-highlighted-control': isHighlightedTextLike(highlightedAnswers, field) }"
+            :class="{
+              'preset-highlighted-control': isHighlightedTextLike(highlightedAnswers, field),
+            }"
             :data-field-input="field.key"
             :value="session.getAnswer(field.key)"
             @change="updateText(session, field, $event)"
           >
             <option value="">{{ t('common.selectOption') }}</option>
             <option v-for="option in field.options" :key="option.value" :value="option.value">
-              {{ text(option.label) }}
+              {{ option.label }}
             </option>
           </select>
         </fieldset>

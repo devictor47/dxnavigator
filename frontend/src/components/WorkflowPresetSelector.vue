@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from '@/composables/useI18n'
 import type { WorkflowPreset } from '@/data/workflow'
-import { resolveText } from '@/i18n/locales'
 
 defineProps<{
   presets?: WorkflowPreset[]
@@ -12,7 +11,7 @@ defineEmits<{
   apply: [preset: WorkflowPreset]
 }>()
 
-const { locale, t } = useI18n()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -32,8 +31,8 @@ const { locale, t } = useI18n()
         type="button"
         @click="$emit('apply', preset)"
       >
-        <strong>{{ resolveText(preset.title, locale) }}</strong>
-        <span v-if="preset.description">{{ resolveText(preset.description, locale) }}</span>
+        <strong>{{ preset.title }}</strong>
+        <span v-if="preset.description">{{ preset.description }}</span>
       </button>
     </div>
   </section>

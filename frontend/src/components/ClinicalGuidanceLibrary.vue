@@ -1,14 +1,13 @@
 <script setup lang="ts">
 import { useI18n } from '@/composables/useI18n'
 import type { ClinicalGuide, SourceFigure } from '@/data/workflow'
-import { resolveText } from '@/i18n/locales'
 
 defineProps<{
   quickGuides?: ClinicalGuide[]
   sourceFigures?: SourceFigure[]
 }>()
 
-const { locale, t } = useI18n()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -29,15 +28,15 @@ const { locale, t } = useI18n()
           {{ t('guidance.noQuickGuides') }}
         </p>
 
-        <article v-for="guide in quickGuides" :key="resolveText(guide.title, locale)" class="guide-card">
-          <h4>{{ resolveText(guide.title, locale) }}</h4>
-          <p v-if="guide.description">{{ resolveText(guide.description, locale) }}</p>
+        <article v-for="guide in quickGuides" :key="guide.title" class="guide-card">
+          <h4>{{ guide.title }}</h4>
+          <p v-if="guide.description">{{ guide.description }}</p>
 
           <div v-if="guide.criteria?.length" class="guide-list-group">
             <strong>{{ t('guidance.criteria') }}</strong>
             <ul>
-              <li v-for="criterion in guide.criteria" :key="resolveText(criterion, locale)">
-                {{ resolveText(criterion, locale) }}
+              <li v-for="criterion in guide.criteria" :key="criterion">
+                {{ criterion }}
               </li>
             </ul>
           </div>
@@ -45,8 +44,8 @@ const { locale, t } = useI18n()
           <div v-if="guide.actions?.length" class="guide-list-group">
             <strong>{{ t('guidance.actions') }}</strong>
             <ul>
-              <li v-for="action in guide.actions" :key="resolveText(action, locale)">
-                {{ resolveText(action, locale) }}
+              <li v-for="action in guide.actions" :key="action">
+                {{ action }}
               </li>
             </ul>
           </div>
@@ -66,7 +65,7 @@ const { locale, t } = useI18n()
         <component
           :is="figure.sourceUrl ? 'a' : 'article'"
           v-for="figure in sourceFigures"
-          :key="resolveText(figure.title, locale)"
+          :key="figure.title"
           :href="figure.sourceUrl"
           :target="figure.sourceUrl ? '_blank' : undefined"
           :rel="figure.sourceUrl ? 'noreferrer' : undefined"
@@ -75,12 +74,12 @@ const { locale, t } = useI18n()
           <img
             v-if="figure.imageUrl"
             :src="figure.imageUrl"
-            :alt="figure.altText ? resolveText(figure.altText, locale) : resolveText(figure.title, locale)"
+            :alt="figure.altText ?? figure.title"
           />
-          <h4>{{ resolveText(figure.title, locale) }}</h4>
-          <p>{{ resolveText(figure.source, locale) }}</p>
-          <p v-if="figure.notes">{{ resolveText(figure.notes, locale) }}</p>
-          <small v-if="figure.citation">{{ resolveText(figure.citation, locale) }}</small>
+          <h4>{{ figure.title }}</h4>
+          <p>{{ figure.source }}</p>
+          <p v-if="figure.notes">{{ figure.notes }}</p>
+          <small v-if="figure.citation">{{ figure.citation }}</small>
           <strong v-if="figure.sourceUrl" class="source-link-label">
             {{ t('guidance.openSource') }}
           </strong>

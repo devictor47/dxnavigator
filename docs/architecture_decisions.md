@@ -637,3 +637,165 @@ If the frontend later moves to Cloudflare Pages or another static host, this dec
 Because API requests are same-origin through nginx, future auth cookies should be configured with this request path in mind.
 
 `DATABASE_ENSURE_CREATED=true` remains available during the early stage so a fresh PostgreSQL volume can boot without migrations. This should be replaced by EF Core migrations before treating the deployment as real production.
+
+## ADR 012: Workflow Content, Language, Marketplace Identity, and Public Routing
+
+### Status
+
+Accepted.
+
+### Context
+
+Workflow files are becoming large clinical artifacts. The current implementation allows workflow text to be localized inline through objects such as:
+
+```ts
+label: {
+  en: 'Pain quality',
+  'pt-BR': 'Caracteristica da dor',
+}
+```
+
+This is type-safe, but it makes workflow files noisy and harder to review. Clinical workflows contain labels, helper text, option text, narratives, red flags, differentials, workup, quick guides, source notes, presets, and HPI templates. Keeping multiple languages inside one workflow definition makes each file dense and difficult for humans to maintain.
+
+The product is also expected to evolve toward a workflow marketplace where users can browse, preview, add, create, and share workflows. In that model, there may be many workflows about the same clinical topic. For example:
+
+- Migraine for emergency care.
+- Migraine for primary care.
+- Migraine with red-flag emphasis.
+- Enxaqueca for Brazilian outpatient practice.
+- Pediatric headache.
+- Chronic migraine follow-up.
+
+Trying to enforce a single canonical multilingual workflow with structurally identical language variants would be too rigid once users can create and share their own workflows.
+
+### Decision
+
+Workflow content should be treated as a standalone clinical artifact authored in one language.
+
+The application UI chrome remains key-based i18n:
+
+```ts
+t('auth.login')
+t('sidebar.expand')
+t('builder.addField')
+```
+
+Workflow content should not use app-level translation keys and should not embed multiple locale objects inside every text field. A workflow definition should carry simple strings in the language it was authored in:
+
+```ts
+title: 'Migraine and Acute Headache - ED Red Flags'
+language: 'en'
+```
+
+or:
+
+```ts
+title: 'Enxaqueca - Atendimento Ambulatorial'
+language: 'pt-BR'
+```
+
+There can be many workflows for the same topic. The user decides which workflow is clinically useful for their environment.
+
+Marketplace discovery should rely on metadata and filtering rather than canonical workflow identity. Expected filters include:
+
+- Language.
+- Tags.
+- Specialty.
+- Care setting.
+- Author or organization.
+- Source quality or citation metadata.
+- Later: ratings, installs, or version history.
+
+Workflow definitions should not own durable database identity. The backend owns identity when a workflow is inserted.
+
+The workflow definition may include:
+
+```ts
+type ClinicalWorkflow = {
+  title: string
+  language: string
+  description?: string
+  sections: ModuleSection[]
+  redFlags: ClinicalItem[]
+  differentials: ClinicalItem[]
+  workup: ClinicalItem[]
+  quickGuides?: ClinicalGuide[]
+  sourceFigures?: SourceFigure[]
+  presets?: WorkflowPreset[]
+  hpiTemplate?: string
+}
+```
+
+The persisted backend record owns system identity and sharing identity:
+
+```ts
+type WorkflowRecord = {
+  id: number
+  ownerUserId: number
+  publicId?: string
+  slug?: string
+  title: string
+  language: string
+  description?: string
+  definition: ClinicalWorkflow
+  createdAt: string
+  updatedAt: string
+  deletedAt?: string
+}
+```
+
+The internal `id` is the database primary key. It is not authored by the workflow creator.
+
+When a workflow is shared publicly, the backend should provide a stable public identifier such as a UUID or opaque public token:
+
+```text
+publicId = wfkw929
+```
+
+A slug is useful for readability, SEO, exported filenames, and debugging, but it is not authoritative identity. It does not need to be globally unique.
+
+Public URLs can combine stable identity and readable slug:
+
+```text
+/workflows/wfkw929/migraine
+/workflows/ormr93/migraine
+```
+
+Both URLs can exist because the backend resolves by `publicId`, not by `migraine`.
+
+### Rationale
+
+Medical language is not just string substitution. Different languages may need different clinical idioms, sentence order, section grouping, narrative style, or documentation phrasing. This is especially true for generated HPI templates.
+
+Treating every workflow as its own authored artifact is more compatible with a marketplace. It avoids assuming that all migraine workflows are variants of one master object. It also avoids brittle validation requirements across user-created workflows.
+
+Removing inline localization from workflow content should make workflow files easier to read, review, generate, import, and maintain.
+
+Separating public identity from slug gives friendly URLs without making human-readable text responsible for identity. Titles and slugs can change. Public IDs should remain stable.
+
+### Rules
+
+- App UI chrome uses app i18n.
+- Workflow content is authored directly in one language.
+- Workflow definitions should not call app-level `t()`.
+- Workflow definitions should not use translation-key placeholders for clinical text.
+- Workflow definitions should not contain system-owned database IDs.
+- Backend records own internal database identity.
+- Public sharing should use a backend-generated public ID.
+- Slugs are readable labels, not authoritative identifiers.
+- Slugs do not need to be globally unique when a public ID is present.
+- Tags and metadata support marketplace discovery, not workflow uniqueness.
+
+### Consequences
+
+Existing frontend workflow types will need to be simplified later by removing `TranslatableText` from workflow content.
+
+Bundled frontend workflows will still need local registry keys while they are hardcoded. These keys are a frontend registry concern, not workflow schema identity.
+
+Persisted workflows should be routed by backend identity or public identity, not by workflow-authored IDs.
+
+The workflow builder should eventually create workflow definitions with simple strings in the selected authoring language.
+
+Marketplace upload should request or infer metadata such as language, tags, specialty, care setting, and description.
+
+If public workflow pages become searchable, slugs can improve readability and SEO while public IDs preserve stable routing.

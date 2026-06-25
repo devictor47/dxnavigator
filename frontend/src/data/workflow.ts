@@ -1,50 +1,50 @@
 import { Liquid } from 'liquidjs'
 
-import { defaultLocale, resolveText, type Locale, type TranslatableText } from '@/i18n/locales'
+import { defaultLocale, type Locale } from '@/i18n/locales'
 
 export type ClinicalItem = {
-  title: TranslatableText
-  description?: TranslatableText
+  title: string
+  description?: string
 }
 
 export type ClinicalGuide = {
-  title: TranslatableText
-  description?: TranslatableText
-  criteria?: TranslatableText[]
-  actions?: TranslatableText[]
+  title: string
+  description?: string
+  criteria?: string[]
+  actions?: string[]
 }
 
 export type SourceFigure = {
-  title: TranslatableText
-  source: TranslatableText
+  title: string
+  source: string
   sourceUrl?: string
-  citation?: TranslatableText
-  notes?: TranslatableText
+  citation?: string
+  notes?: string
   imageUrl?: string
-  altText?: TranslatableText
+  altText?: string
 }
 
 export type WorkflowPreset = {
   id: string
-  title: TranslatableText
-  description?: TranslatableText
+  title: string
+  description?: string
   answers: ModuleAnswers
 }
 
 export type FieldOption = {
-  label: TranslatableText
+  label: string
   value: string
-  narrative?: TranslatableText
+  narrative?: string
 }
 
 export type TextNarrative = {
-  prefix?: TranslatableText
-  suffix?: TranslatableText
+  prefix?: string
+  suffix?: string
 }
 
 export type BooleanNarrative = {
-  whenTrue?: TranslatableText
-  whenFalse?: TranslatableText
+  whenTrue?: string
+  whenFalse?: string
 }
 
 export type DisplayCondition = {
@@ -54,15 +54,15 @@ export type DisplayCondition = {
 
 type BaseField = {
   key: string
-  label: TranslatableText
-  helperText?: TranslatableText
+  label: string
+  helperText?: string
   required?: boolean
   displayIf?: DisplayCondition
 }
 
 export type TextField = BaseField & {
   type: 'text'
-  placeholder?: TranslatableText
+  placeholder?: string
   defaultValue?: string
   narrative?: TextNarrative
 }
@@ -89,8 +89,8 @@ export type ModuleField = TextField | BooleanField | SelectField | MultiselectFi
 
 export type ModuleSection = {
   id: string
-  title: TranslatableText
-  description?: TranslatableText
+  title: string
+  description?: string
   fields: ModuleField[]
 }
 
@@ -99,8 +99,11 @@ export type ModuleAnswerValue = ModuleAnswers[string]
 
 export type ClinicalWorkflow = {
   id: string
-  title: TranslatableText
-  overview: TranslatableText
+  language: Locale
+  slug?: string
+  title: string
+  description?: string
+  overview: string
   sections: ModuleSection[]
   redFlags: ClinicalItem[]
   differentials: ClinicalItem[]
@@ -108,7 +111,7 @@ export type ClinicalWorkflow = {
   quickGuides?: ClinicalGuide[]
   sourceFigures?: SourceFigure[]
   presets?: WorkflowPreset[]
-  hpiTemplate?: TranslatableText
+  hpiTemplate?: string
   // Temporary: module-specific HPI generator.
   // Later this should be replaced by template-based narrative generation.
   generateHpi?: (answers: ModuleAnswers) => string
@@ -134,7 +137,8 @@ export const getTextAnswer = (answers: ModuleAnswers, key: string): string => {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-export const getBooleanAnswer = (answers: ModuleAnswers, key: string): boolean => answers[key] === true
+export const getBooleanAnswer = (answers: ModuleAnswers, key: string): boolean =>
+  answers[key] === true
 
 export const getTextNarrative = (
   field: TextField,
@@ -147,13 +151,7 @@ export const getTextNarrative = (
     return ''
   }
 
-  return [
-    field.narrative?.prefix ? resolveText(field.narrative.prefix, locale) : undefined,
-    value,
-    field.narrative?.suffix ? resolveText(field.narrative.suffix, locale) : undefined,
-  ]
-    .filter(Boolean)
-    .join(' ')
+  return [field.narrative?.prefix, value, field.narrative?.suffix].filter(Boolean).join(' ')
 }
 
 export const getBooleanNarrative = (
@@ -164,13 +162,11 @@ export const getBooleanNarrative = (
   const value = answers[field.key]
 
   if (value === true) {
-    return field.narrative?.whenTrue
-      ? resolveText(field.narrative.whenTrue, locale)
-      : resolveText(field.label, locale).toLowerCase()
+    return field.narrative?.whenTrue ? field.narrative.whenTrue : field.label.toLowerCase()
   }
 
   if (value === false) {
-    return field.narrative?.whenFalse ? resolveText(field.narrative.whenFalse, locale) : ''
+    return field.narrative?.whenFalse ?? ''
   }
 
   return ''
@@ -193,9 +189,7 @@ export const getSelectNarrative = (
     return ''
   }
 
-  return selectedOption.narrative
-    ? resolveText(selectedOption.narrative, locale)
-    : resolveText(selectedOption.label, locale).toLowerCase()
+  return selectedOption.narrative ? selectedOption.narrative : selectedOption.label.toLowerCase()
 }
 
 export const getSelectedNarratives = (
@@ -211,11 +205,7 @@ export const getSelectedNarratives = (
 
   return field.options
     .filter((option) => value.includes(option.value))
-    .map((option) =>
-      option.narrative
-        ? resolveText(option.narrative, locale)
-        : resolveText(option.label, locale).toLowerCase(),
-    )
+    .map((option) => (option.narrative ? option.narrative : option.label.toLowerCase()))
 }
 
 export const getFieldNarrative = (
@@ -302,7 +292,7 @@ export const renderWorkflowHpi = (
   if (workflow.hpiTemplate) {
     return cleanRenderedText(
       liquid.parseAndRenderSync(
-        resolveText(workflow.hpiTemplate, locale),
+        workflow.hpiTemplate,
         createNarrativeContext(workflow, answers, locale),
       ),
     )

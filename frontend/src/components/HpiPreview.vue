@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Check, Copy, Pin } from '@lucide/vue'
 import { ref } from 'vue'
 
 import { useI18n } from '@/composables/useI18n'
@@ -35,17 +36,27 @@ const copyToClipboard = async (text: string) => {
       </div>
 
       <div class="preview-actions">
-        <button class="preview-action-button" type="button" @click="copyToClipboard(narrative)">
-          {{ copied ? t('common.copied') : t('common.copy') }}
+        <button
+          class="preview-action-button icon-only"
+          type="button"
+          :aria-label="copied ? t('common.copied') : t('common.copy')"
+          :title="copied ? t('common.copied') : t('common.copy')"
+          @click="copyToClipboard(narrative)"
+        >
+          <Check v-if="copied" :size="18" aria-hidden="true" />
+          <Copy v-else :size="18" aria-hidden="true" />
         </button>
 
         <button
           class="preview-action-button"
+          :class="{ 'icon-only': true }"
           type="button"
           :aria-pressed="sticky"
+          :aria-label="sticky ? t('common.pinned') : t('common.pin')"
+          :title="sticky ? t('common.pinned') : t('common.pin')"
           @click="$emit('toggleSticky')"
         >
-          {{ sticky ? t('common.pinned') : t('common.pin') }}
+          <Pin :size="18" aria-hidden="true" />
         </button>
       </div>
     </div>

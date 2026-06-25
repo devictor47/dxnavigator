@@ -19,6 +19,11 @@ const messages = {
     'common.copied': 'Copied',
     'common.cancel': 'Cancel',
     'common.selectOption': 'Select an option',
+    'notifications.close': 'Close notification',
+    'notifications.missingSectionTitleTitle': 'Section title required',
+    'notifications.missingSectionTitleMessage': 'To add a section, first define a title.',
+    'notifications.missingFieldLabelTitle': 'Field label required',
+    'notifications.missingFieldLabelMessage': 'To add a field, first define a label.',
     'auth.login': 'Log in',
     'auth.logout': 'Log out',
     'auth.register': 'Create account',
@@ -58,8 +63,6 @@ const messages = {
     'workspace.eyebrow': 'Interactive clinical module',
     'workspace.formEyebrow': 'Structured input',
     'workspace.formTitle': 'History collection',
-    'workspace.helpTitle': 'Quick guidance',
-    'workspace.helpBody': 'Check red flags, differential diagnoses, and workup before moving on.',
     'summary.title': 'Summary',
     'summary.clinicalGuidance': 'Clinical guidance',
     'summary.guidanceLibrary': 'Guidance library',
@@ -67,7 +70,8 @@ const messages = {
     'sidebar.expand': 'Expand sidebar',
     'presets.eyebrow': 'Presets',
     'presets.title': 'Load a common state',
-    'presets.description': 'Replace the form with a prepared set of answers for a common consultation pattern.',
+    'presets.description':
+      'Replace the form with a prepared set of answers for a common consultation pattern.',
     'presets.confirmEyebrow': 'Replace form state',
     'presets.confirmTitle': 'Load this preset?',
     'presets.confirmDescription':
@@ -91,7 +95,8 @@ const messages = {
     'guidance.quickGuideTitle': 'Quick Dx Guide',
     'guidance.quickGuideDescription': 'Structured takeaways for quick consultation during care.',
     'guidance.sourceFiguresTitle': 'Source figures',
-    'guidance.sourceFiguresDescription': 'Original algorithms or figures from guideline and evidence sources.',
+    'guidance.sourceFiguresDescription':
+      'Original algorithms or figures from guideline and evidence sources.',
     'guidance.noQuickGuides': 'No quick guides configured for this workflow yet.',
     'guidance.noSourceFigures': 'No source figures configured for this workflow yet.',
     'guidance.criteria': 'Consider when',
@@ -99,6 +104,7 @@ const messages = {
     'guidance.openSource': 'Open original source',
     'builder.nav.workspace': 'Clinical workspace',
     'builder.nav.builder': 'Workflow builder',
+    'builder.editWorkflow': 'Edit workflow',
     'builder.eyebrow': 'Workflow authoring',
     'builder.title': 'Workflow builder',
     'builder.description':
@@ -106,9 +112,16 @@ const messages = {
     'builder.detailsTitle': 'Workflow details',
     'builder.detailsDescription': 'Start with stable identifiers and English source text.',
     'builder.workflowId': 'Workflow ID',
+    'builder.workflowIdHint':
+      'Temporary local identifier used while workflows are bundled in the frontend. Later the backend will own workflow identity.',
+    'builder.workflowSlug': 'Slug',
+    'builder.workflowSlugHint':
+      'Readable text used for URLs, filenames, and browsing. It helps humans recognize the workflow but is not the database identity.',
     'builder.workflowTitle': 'Title',
+    'builder.workflowDescription': 'Description',
     'builder.contentLocale': 'Content locale',
     'builder.workflowOverview': 'Overview',
+    'builder.sectionDescription': 'Section description',
     'builder.hpiTemplateTitle': 'HPI template',
     'builder.hpiTemplateDescription':
       'Use Liquid placeholders such as {{ onset }} and filters such as {{ radiation | list: locale }}.',
@@ -117,25 +130,37 @@ const messages = {
       'Write the note as you want it to appear. Click an answer chip to insert it into the text.',
     'builder.hpiTemplate': 'Template',
     'builder.generatedNote': 'Note text',
+    'builder.generatedNoteHint':
+      'Liquid template used to generate the HPI preview from the workflow answers.',
     'builder.hpiTemplatePlaceholder':
       'Patient presents with {{ location }}{% if onset %} beginning {{ onset }}{% endif %}.',
     'builder.availableAnswers': 'Available answers',
-    'builder.availableAnswersDescription': 'Click a field to insert the patient answer into the note.',
+    'builder.availableAnswersDescription':
+      'Click a field to insert the patient answer into the note.',
     'builder.emptyTemplateFields': 'Add fields to the workflow before inserting answers.',
     'builder.advancedTemplateSyntax': 'Advanced template syntax',
     'builder.advancedTemplateDescription':
       'Use these patterns when a sentence should appear only sometimes, or when a field contains multiple answers.',
     'builder.sectionsTitle': 'Sections and fields',
-    'builder.sectionsDescription': 'Group related clinical questions and add fields to each section.',
+    'builder.sectionsDescription':
+      'Group related clinical questions and add fields to each section.',
     'builder.sectionPlaceholder': 'Section title',
     'builder.sectionTitle': 'Section title',
     'builder.sectionId': 'Section ID',
+    'builder.sectionIdHint':
+      'Stable section identifier used for page anchors and internal navigation. It should stay language-independent.',
     'builder.addSection': 'Add section',
     'builder.removeSection': 'Remove section',
     'builder.emptySections': 'No sections yet. Enter a section title above to start building.',
     'builder.fieldsCount': 'fields',
     'builder.fieldLabelPlaceholder': 'Field label',
     'builder.fieldKeyPlaceholder': 'fieldKey',
+    'builder.fieldKeyHint':
+      'Stable answer key used by templates, presets, and saved data. Keep it language-independent.',
+    'builder.fieldTypeText': 'Text',
+    'builder.fieldTypeBoolean': 'Yes/no',
+    'builder.fieldTypeSelect': 'Options - choose one',
+    'builder.fieldTypeMultiselect': 'Options - choose many',
     'builder.addField': 'Add field',
     'builder.configureField': 'Configure',
     'builder.collapseField': 'Collapse',
@@ -145,7 +170,24 @@ const messages = {
     'builder.fieldDetailsDescription': 'Configure shared metadata and type-specific behavior.',
     'builder.requiredField': 'Required',
     'builder.helperText': 'Helper text',
+    'builder.helperTextHint':
+      'Short guidance shown below the field to help the clinician answer it correctly.',
+    'builder.displayIf': 'Conditional display',
+    'builder.displayIfHint': 'Shows this field only when another field has a specific answer.',
+    'builder.enableDisplayIf': 'Show only when another answer matches',
+    'builder.displayIfField': 'Depends on field',
+    'builder.displayIfFieldHint':
+      'Choose the field that controls whether this field is visible.',
+    'builder.displayIfType': 'Expected value type',
+    'builder.displayIfBoolean': 'Boolean',
+    'builder.displayIfString': 'Text',
+    'builder.displayIfStringArray': 'List of options',
+    'builder.displayIfEquals': 'Equals',
+    'builder.displayIfArrayPlaceholder': 'one-value, another-value',
+    'builder.booleanTrue': 'True',
+    'builder.booleanFalse': 'False',
     'builder.textSettings': 'Text settings',
+    'builder.defaultText': 'Default text',
     'builder.placeholder': 'Placeholder',
     'builder.narrativePrefix': 'Narrative prefix',
     'builder.narrativeSuffix': 'Narrative suffix',
@@ -164,6 +206,37 @@ const messages = {
     'builder.optionLabelPlaceholder': 'Option label',
     'builder.optionValuePlaceholder': 'option-value',
     'builder.optionNarrativePlaceholder': 'Narrative',
+    'builder.clinicalGuidanceTitle': 'Clinical guidance',
+    'builder.clinicalGuidanceDescription':
+      'Add the reference content that appears below the structured form.',
+    'builder.addItem': 'Add item',
+    'builder.emptyClinicalItems': 'No items configured yet.',
+    'builder.itemTitle': 'Title',
+    'builder.itemDescription': 'Description',
+    'builder.guidanceLibraryTitle': 'Guidance library',
+    'builder.guidanceLibraryDescription':
+      'Add quick guides and source figures for consultation during care.',
+    'builder.addGuide': 'Add guide',
+    'builder.emptyGuides': 'No quick guides configured yet.',
+    'builder.addSourceFigure': 'Add source figure',
+    'builder.emptySourceFigures': 'No source figures configured yet.',
+    'builder.sourceName': 'Source name',
+    'builder.sourceUrl': 'Source URL',
+    'builder.sourceUrlHint': 'Original guideline, article, or official source link for this figure.',
+    'builder.imageUrl': 'Image URL',
+    'builder.imageUrlHint': 'Path or URL for the source figure image shown in the guidance library.',
+    'builder.altText': 'Alt text',
+    'builder.citation': 'Citation',
+    'builder.notes': 'Notes',
+    'builder.presetsTitle': 'Presets',
+    'builder.presetsDescription':
+      'Define prepared answer states that can replace the form during a consultation.',
+    'builder.addPreset': 'Add preset',
+    'builder.emptyPresets': 'No presets configured yet.',
+    'builder.presetId': 'Preset ID',
+    'builder.presetAnswersJson': 'Answers JSON',
+    'builder.presetAnswersJsonHint':
+      'Prepared answer state for this preset. Keys must match field keys from the workflow.',
     'builder.previewEyebrow': 'Schema preview',
     'builder.previewTitle': 'Generated workflow object',
     'builder.previewDescription': 'This preview follows the workflow shape used by the renderer.',
@@ -176,8 +249,28 @@ const messages = {
     'builder.validationDuplicateSectionIds': 'Duplicate section IDs',
     'builder.validationDuplicateFieldKeys': 'Duplicate field keys',
     'builder.validationDuplicateOptionValues': 'Duplicate option values',
+    'builder.validationMissingDisplayIfField': 'Conditional display references a missing field',
+    'builder.validationDuplicatePresetIds': 'Duplicate preset IDs',
+    'builder.validationInvalidPresetJson': 'Preset answers must be a JSON object',
     'builder.summarySections': 'Sections',
     'builder.summaryFields': 'Fields',
+    'marketplace.nav': 'Marketplace',
+    'marketplace.eyebrow': 'Workflow library',
+    'marketplace.title': 'Workflow marketplace',
+    'marketplace.description':
+      'Browse clinical workflows that can be previewed, edited, and later added to your workspace.',
+    'marketplace.searchLabel': 'Search',
+    'marketplace.searchPlaceholder': 'Search by complaint, specialty, or tag',
+    'marketplace.languageLabel': 'Language',
+    'marketplace.currentLanguage': 'Current language',
+    'marketplace.settingLabel': 'Care setting',
+    'marketplace.allSettings': 'All settings',
+    'marketplace.bundledBadge': 'Bundled',
+    'marketplace.sections': 'sections',
+    'marketplace.fields': 'fields',
+    'marketplace.redFlags': 'red flags',
+    'marketplace.openWorkflow': 'Open workflow',
+    'marketplace.removeWorkflow': 'Remove workflow',
   },
   'pt-BR': {
     'common.help': 'Ajuda',
@@ -191,6 +284,12 @@ const messages = {
     'common.copied': 'Copiado',
     'common.cancel': 'Cancelar',
     'common.selectOption': 'Selecione uma opção',
+    'notifications.close': 'Fechar notificação',
+    'notifications.missingSectionTitleTitle': 'Título da seção obrigatório',
+    'notifications.missingSectionTitleMessage':
+      'Para adicionar uma seção, primeiro defina um título.',
+    'notifications.missingFieldLabelTitle': 'Rótulo do campo obrigatório',
+    'notifications.missingFieldLabelMessage': 'Para adicionar um campo, primeiro defina um rótulo.',
 
     'auth.login': 'Entrar',
     'auth.logout': 'Sair',
@@ -233,9 +332,6 @@ const messages = {
     'workspace.eyebrow': 'Módulo clínico interativo',
     'workspace.formEyebrow': 'Entrada estruturada',
     'workspace.formTitle': 'Coleta da história',
-    'workspace.helpTitle': 'Guia rápido',
-    'workspace.helpBody':
-      'Revise sinais de alerta, diagnósticos diferenciais e investigação antes de avançar.',
 
     'summary.title': 'Resumo',
     'summary.clinicalGuidance': 'Orientação clínica',
@@ -252,8 +348,7 @@ const messages = {
     'presets.confirmTitle': 'Carregar esta predefinição?',
     'presets.confirmDescription':
       'Isso substituirá as respostas atuais do formulário. Os campos definidos pela predefinição ficarão destacados depois.',
-    'presets.rememberDecision':
-      'Lembrar esta decisão e pular esta confirmação da próxima vez.',
+    'presets.rememberDecision': 'Lembrar esta decisão e pular esta confirmação da próxima vez.',
     'presets.replaceForm': 'Substituir formulário',
 
     'selector.eyebrow': 'Queixa principal',
@@ -263,8 +358,7 @@ const messages = {
 
     'preview.eyebrow': 'Nota gerada',
     'preview.title': 'Prévia da HMA',
-    'preview.helper':
-      'Arraste a borda inferior para dar mais espaço vertical à nota.',
+    'preview.helper': 'Arraste a borda inferior para dar mais espaço vertical à nota.',
 
     'guidance.redFlagsEyebrow': 'Segurança',
     'guidance.redFlagsTitle': 'Sinais de alerta',
@@ -280,16 +374,15 @@ const messages = {
     'guidance.sourceFiguresTitle': 'Figuras da fonte',
     'guidance.sourceFiguresDescription':
       'Algoritmos ou figuras originais de diretrizes e fontes de evidência.',
-    'guidance.noQuickGuides':
-      'Nenhum guia rápido configurado para este fluxo ainda.',
-    'guidance.noSourceFigures':
-      'Nenhuma figura de fonte configurada para este fluxo ainda.',
+    'guidance.noQuickGuides': 'Nenhum guia rápido configurado para este fluxo ainda.',
+    'guidance.noSourceFigures': 'Nenhuma figura de fonte configurada para este fluxo ainda.',
     'guidance.criteria': 'Considere quando',
     'guidance.actions': 'Ações sugeridas',
     'guidance.openSource': 'Abrir fonte original',
 
     'builder.nav.workspace': 'Workspace clínico',
     'builder.nav.builder': 'Construtor de fluxos',
+    'builder.editWorkflow': 'Editar fluxo',
 
     'builder.eyebrow': 'Autoria de fluxos',
     'builder.title': 'Construtor de fluxos',
@@ -297,13 +390,19 @@ const messages = {
       'Crie a estrutura de um fluxo clínico a partir de metadados antes que ele se torne um formulário renderizado.',
 
     'builder.detailsTitle': 'Detalhes do fluxo',
-    'builder.detailsDescription':
-      'Comece com identificadores estáveis e texto-fonte em inglês.',
+    'builder.detailsDescription': 'Comece com identificadores estáveis e texto-fonte em inglês.',
 
     'builder.workflowId': 'ID do fluxo',
+    'builder.workflowIdHint':
+      'Identificador local temporário usado enquanto os fluxos ficam embutidos no frontend. Depois, o backend será dono da identidade do fluxo.',
+    'builder.workflowSlug': 'Slug',
+    'builder.workflowSlugHint':
+      'Texto legível usado em URLs, nomes de arquivo e navegação. Ajuda pessoas a reconhecerem o fluxo, mas não é a identidade do banco.',
     'builder.workflowTitle': 'Título',
+    'builder.workflowDescription': 'Descrição',
     'builder.contentLocale': 'Idioma do conteúdo',
     'builder.workflowOverview': 'Resumo',
+    'builder.sectionDescription': 'Descrição da seção',
 
     'builder.hpiTemplateTitle': 'Template da HMA',
     'builder.hpiTemplateDescription':
@@ -315,6 +414,8 @@ const messages = {
 
     'builder.hpiTemplate': 'Template',
     'builder.generatedNote': 'Texto da nota',
+    'builder.generatedNoteHint':
+      'Template Liquid usado para gerar a prévia da HMA a partir das respostas do fluxo.',
 
     'builder.hpiTemplatePlaceholder':
       'Paciente refere {{ location }}{% if onset %} com início {{ onset }}{% endif %}.',
@@ -323,8 +424,7 @@ const messages = {
     'builder.availableAnswersDescription':
       'Clique em um campo para inserir a resposta do paciente na nota.',
 
-    'builder.emptyTemplateFields':
-      'Adicione campos ao fluxo antes de inserir respostas.',
+    'builder.emptyTemplateFields': 'Adicione campos ao fluxo antes de inserir respostas.',
 
     'builder.advancedTemplateSyntax': 'Sintaxe avançada do template',
     'builder.advancedTemplateDescription':
@@ -337,25 +437,31 @@ const messages = {
     'builder.sectionPlaceholder': 'Título da seção',
     'builder.sectionTitle': 'Título da seção',
     'builder.sectionId': 'ID da seção',
+    'builder.sectionIdHint':
+      'Identificador estável da seção usado para âncoras e navegação interna. Deve permanecer independente do idioma.',
 
     'builder.addSection': 'Adicionar seção',
     'builder.removeSection': 'Remover seção',
 
-    'builder.emptySections':
-      'Nenhuma seção ainda. Informe um título acima para começar.',
+    'builder.emptySections': 'Nenhuma seção ainda. Informe um título acima para começar.',
 
     'builder.fieldsCount': 'campos',
 
     'builder.fieldLabelPlaceholder': 'Rótulo do campo',
     'builder.fieldKeyPlaceholder': 'fieldKey',
+    'builder.fieldKeyHint':
+      'Chave estável da resposta usada por templates, predefinições e dados salvos. Mantenha independente do idioma.',
+    'builder.fieldTypeText': 'Texto',
+    'builder.fieldTypeBoolean': 'Sim/não',
+    'builder.fieldTypeSelect': 'Opções - marcar uma',
+    'builder.fieldTypeMultiselect': 'Opções - marcar várias',
 
     'builder.addField': 'Adicionar campo',
     'builder.configureField': 'Configurar',
     'builder.collapseField': 'Recolher',
     'builder.removeField': 'Remover',
 
-    'builder.emptyFields':
-      'Nenhum campo ainda. Adicione o primeiro campo abaixo.',
+    'builder.emptyFields': 'Nenhum campo ainda. Adicione o primeiro campo abaixo.',
 
     'builder.fieldDetailsTitle': 'Detalhes do campo',
     'builder.fieldDetailsDescription':
@@ -363,8 +469,25 @@ const messages = {
 
     'builder.requiredField': 'Obrigatório',
     'builder.helperText': 'Texto auxiliar',
+    'builder.helperTextHint':
+      'Orientação curta exibida abaixo do campo para ajudar o clínico a responder corretamente.',
+    'builder.displayIf': 'Exibição condicional',
+    'builder.displayIfHint':
+      'Mostra este campo apenas quando outro campo tiver uma resposta específica.',
+    'builder.enableDisplayIf': 'Mostrar apenas quando outra resposta corresponder',
+    'builder.displayIfField': 'Depende do campo',
+    'builder.displayIfFieldHint': 'Escolha o campo que controla se este campo ficará visível.',
+    'builder.displayIfType': 'Tipo do valor esperado',
+    'builder.displayIfBoolean': 'Booleano',
+    'builder.displayIfString': 'Texto',
+    'builder.displayIfStringArray': 'Lista de opções',
+    'builder.displayIfEquals': 'Igual a',
+    'builder.displayIfArrayPlaceholder': 'um-valor, outro-valor',
+    'builder.booleanTrue': 'Verdadeiro',
+    'builder.booleanFalse': 'Falso',
 
     'builder.textSettings': 'Configurações de texto',
+    'builder.defaultText': 'Texto padrão',
     'builder.placeholder': 'Placeholder',
     'builder.narrativePrefix': 'Prefixo narrativo',
     'builder.narrativeSuffix': 'Sufixo narrativo',
@@ -382,41 +505,84 @@ const messages = {
     'builder.defaultOptions': 'Opções selecionadas por padrão',
     'builder.noDefault': 'Sem padrão',
 
-    'builder.emptyOptions':
-      'Nenhuma opção ainda. Adicione opções para o usuário escolher.',
+    'builder.emptyOptions': 'Nenhuma opção ainda. Adicione opções para o usuário escolher.',
 
     'builder.optionLabelPlaceholder': 'Rótulo da opção',
     'builder.optionValuePlaceholder': 'valor-da-opção',
     'builder.optionNarrativePlaceholder': 'Narrativa',
+    'builder.clinicalGuidanceTitle': 'Orientação clínica',
+    'builder.clinicalGuidanceDescription':
+      'Adicione o conteúdo de referência que aparece abaixo do formulário estruturado.',
+    'builder.addItem': 'Adicionar item',
+    'builder.emptyClinicalItems': 'Nenhum item configurado ainda.',
+    'builder.itemTitle': 'Título',
+    'builder.itemDescription': 'Descrição',
+    'builder.guidanceLibraryTitle': 'Biblioteca de orientação',
+    'builder.guidanceLibraryDescription':
+      'Adicione guias rápidos e figuras de fonte para consulta durante o atendimento.',
+    'builder.addGuide': 'Adicionar guia',
+    'builder.emptyGuides': 'Nenhum guia rápido configurado ainda.',
+    'builder.addSourceFigure': 'Adicionar figura',
+    'builder.emptySourceFigures': 'Nenhuma figura de fonte configurada ainda.',
+    'builder.sourceName': 'Nome da fonte',
+    'builder.sourceUrl': 'URL da fonte',
+    'builder.sourceUrlHint': 'Link original da diretriz, artigo ou fonte oficial desta figura.',
+    'builder.imageUrl': 'URL da imagem',
+    'builder.imageUrlHint': 'Caminho ou URL da imagem exibida na biblioteca de orientação.',
+    'builder.altText': 'Texto alternativo',
+    'builder.citation': 'Citação',
+    'builder.notes': 'Notas',
+    'builder.presetsTitle': 'Predefinições',
+    'builder.presetsDescription':
+      'Defina estados de respostas preparados para substituir o formulário durante uma consulta.',
+    'builder.addPreset': 'Adicionar predefinição',
+    'builder.emptyPresets': 'Nenhuma predefinição configurada ainda.',
+    'builder.presetId': 'ID da predefinição',
+    'builder.presetAnswersJson': 'JSON das respostas',
+    'builder.presetAnswersJsonHint':
+      'Estado de respostas preparado para esta predefinição. As chaves devem corresponder às chaves dos campos do fluxo.',
 
     'builder.previewEyebrow': 'Prévia do schema',
     'builder.previewTitle': 'Objeto de fluxo gerado',
-    'builder.previewDescription':
-      'Esta prévia segue o formato de fluxo usado pelo renderer.',
+    'builder.previewDescription': 'Esta prévia segue o formato de fluxo usado pelo renderer.',
 
     'builder.exportJson': 'Exportar JSON',
     'builder.importJson': 'Importar JSON',
-    'builder.importInvalid':
-      'Não foi possível importar este arquivo JSON.',
+    'builder.importInvalid': 'Não foi possível importar este arquivo JSON.',
 
     'builder.validationTitle': 'Validação',
-    'builder.validationDescription':
-      'Verifique identificadores duplicados antes de exportar.',
+    'builder.validationDescription': 'Verifique identificadores duplicados antes de exportar.',
 
-    'builder.validationNoIssues':
-      'Nenhum identificador duplicado detectado.',
+    'builder.validationNoIssues': 'Nenhum identificador duplicado detectado.',
 
-    'builder.validationDuplicateSectionIds':
-      'IDs de seção duplicados',
+    'builder.validationDuplicateSectionIds': 'IDs de seção duplicados',
 
-    'builder.validationDuplicateFieldKeys':
-      'Chaves de campo duplicadas',
+    'builder.validationDuplicateFieldKeys': 'Chaves de campo duplicadas',
 
-    'builder.validationDuplicateOptionValues':
-      'Valores de opção duplicados',
+    'builder.validationDuplicateOptionValues': 'Valores de opção duplicados',
+    'builder.validationMissingDisplayIfField': 'Exibição condicional referencia um campo ausente',
+    'builder.validationDuplicatePresetIds': 'IDs de predefinição duplicados',
+    'builder.validationInvalidPresetJson': 'As respostas da predefinição devem ser um objeto JSON',
 
     'builder.summarySections': 'Seções',
     'builder.summaryFields': 'Campos',
+    'marketplace.nav': 'Marketplace',
+    'marketplace.eyebrow': 'Biblioteca de fluxos',
+    'marketplace.title': 'Marketplace de fluxos',
+    'marketplace.description':
+      'Explore fluxos clínicos que podem ser visualizados, editados e futuramente adicionados ao seu workspace.',
+    'marketplace.searchLabel': 'Busca',
+    'marketplace.searchPlaceholder': 'Buscar por queixa, especialidade ou tag',
+    'marketplace.languageLabel': 'Idioma',
+    'marketplace.currentLanguage': 'Idioma atual',
+    'marketplace.settingLabel': 'Cenário de cuidado',
+    'marketplace.allSettings': 'Todos os cenários',
+    'marketplace.bundledBadge': 'Incluído',
+    'marketplace.sections': 'seções',
+    'marketplace.fields': 'campos',
+    'marketplace.redFlags': 'alertas',
+    'marketplace.openWorkflow': 'Abrir fluxo',
+    'marketplace.removeWorkflow': 'Remover fluxo',
   },
 } satisfies Record<Locale, Record<string, string>>
 

@@ -19,13 +19,12 @@ import {
   type ModuleAnswerValue,
   type WorkflowPreset,
 } from '@/data/workflow'
-import { resolveText, type TranslatableText } from '@/i18n/locales'
 
 const { locale, t } = useI18n()
 const route = useRoute()
 const presetConfirmationStorageKey = 'dxnavigator-skip-preset-confirmation'
 
-const selectedModule = computed(() => getClinicalModuleById(route.params.moduleId))
+const selectedModule = computed(() => getClinicalModuleById(route.params.moduleId, locale.value))
 const isPreviewSticky = ref(false)
 const session = ref(createWorkflowSession(selectedModule.value))
 const pendingPreset = ref<WorkflowPreset | null>(null)
@@ -49,8 +48,6 @@ watch(selectedModule, (workflow: ClinicalWorkflow) => {
   activePresetId.value = undefined
   highlightedPresetAnswers.value = {}
 })
-
-const text = (value: TranslatableText): string => resolveText(value, locale.value)
 
 const generatedHpi = computed(() => session.value.generateHpi(locale.value))
 
@@ -150,8 +147,17 @@ onBeforeUnmount(() => {
     <section class="workspace-content">
       <header class="complaint-header">
         <p class="eyebrow">{{ t('workspace.eyebrow') }}</p>
-        <h1>{{ text(selectedModule.title) }}</h1>
-        <p>{{ text(selectedModule.overview) }}</p>
+        <h1>{{ selectedModule.title }}</h1>
+        <p>{{ selectedModule.overview }}</p>
+        <RouterLink
+          class="secondary-action compact-action"
+          :to="`/private/builder/${route.params.moduleId}`"
+        >
+          {{ t('builder.editWorkflow') }}
+        </RouterLink>
+        <button class="danger-action compact-action" type="button" disabled>
+          {{ t('marketplace.removeWorkflow') }}
+        </button>
       </header>
 
       <div class="clinical-workbench">
@@ -166,16 +172,6 @@ onBeforeUnmount(() => {
             <div>
               <p class="eyebrow">{{ t('workspace.formEyebrow') }}</p>
               <h2 id="form-card-title">{{ t('workspace.formTitle') }}</h2>
-            </div>
-
-            <div class="help-control">
-              <a class="help-link" href="#clinical-guidance" aria-describedby="guidance-popover">
-                {{ t('common.help') }}
-              </a>
-              <div id="guidance-popover" class="help-popover" role="tooltip">
-                <strong>{{ t('workspace.helpTitle') }}</strong>
-                <span>{{ t('workspace.helpBody') }}</span>
-              </div>
             </div>
           </div>
 
@@ -228,7 +224,7 @@ onBeforeUnmount(() => {
           :href="`#workflow-section-${section.id}`"
           @click="closeSummary"
         >
-          {{ text(section.title) }}
+          {{ section.title }}
         </a>
         <a href="#clinical-guidance" @click="closeSummary">{{ t('summary.clinicalGuidance') }}</a>
         <a href="#guidance-library" @click="closeSummary">{{ t('summary.guidanceLibrary') }}</a>
@@ -252,8 +248,8 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="preset-confirmation-target">
-          <strong>{{ text(pendingPreset.title) }}</strong>
-          <span v-if="pendingPreset.description">{{ text(pendingPreset.description) }}</span>
+          <strong>{{ pendingPreset.title }}</strong>
+          <span v-if="pendingPreset.description">{{ pendingPreset.description }}</span>
         </div>
 
         <label class="check-option single-check">

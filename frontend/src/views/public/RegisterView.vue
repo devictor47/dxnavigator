@@ -49,7 +49,7 @@ const register = async (): Promise<void> => {
       errorMessage.value =
         error.code === 'DuplicateEmail'
           ? t('auth.emailAlreadyRegistered')
-          : error.errors?.[0] ?? error.message ?? t('auth.registerFailed')
+          : (error.errors?.[0] ?? error.message ?? t('auth.registerFailed'))
       return
     }
 

@@ -5,6 +5,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Stethoscope,
+  Store,
   User,
   Wrench,
 } from '@lucide/vue'
@@ -14,14 +15,14 @@ import { useRouter } from 'vue-router'
 import AppPreferences from '@/components/AppPreferences.vue'
 import ComplaintSelector from '@/components/ComplaintSelector.vue'
 import { useI18n } from '@/composables/useI18n'
-import { clinicalModules } from '@/data/modules'
+import { bundledWorkflowEntries } from '@/data/modules'
 
 const props = defineProps<{
-  activeSection: 'workspace' | 'builder'
+  activeSection: 'workspace' | 'builder' | 'marketplace'
   selectedWorkflowId?: string
 }>()
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const router = useRouter()
 const isSidebarCollapsed = ref(
   typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)').matches : false,
@@ -35,11 +36,11 @@ const currentUser = ref<{
 } | null>(null)
 
 const workflowLinks = computed(() =>
-  clinicalModules.map((module) => ({
-    id: module.id,
-    name: module.title,
-    to: `/private/complaints/${module.id}`,
-    icon: module.id,
+  bundledWorkflowEntries.map((entry) => ({
+    id: entry.localKey,
+    name: entry.workflows[locale.value].title,
+    to: `/private/complaints/${entry.localKey}`,
+    icon: entry.icon,
   })),
 )
 
@@ -142,6 +143,15 @@ onBeforeUnmount(() => {
             <Wrench class="nav-icon" :size="18" aria-hidden="true" />
             <span class="nav-label">{{ t('builder.nav.builder') }}</span>
           </RouterLink>
+          <RouterLink
+            class="complaint-option"
+            :class="{ selected: activeSection === 'marketplace' }"
+            to="/private/marketplace"
+            :title="t('marketplace.nav')"
+          >
+            <Store class="nav-icon" :size="18" aria-hidden="true" />
+            <span class="nav-label">{{ t('marketplace.nav') }}</span>
+          </RouterLink>
         </nav>
 
         <ComplaintSelector
@@ -151,11 +161,7 @@ onBeforeUnmount(() => {
         />
       </div>
 
-      <div
-        ref="accountElement"
-        class="sidebar-account"
-        :class="{ open: isAccountMenuOpen }"
-      >
+      <div ref="accountElement" class="sidebar-account" :class="{ open: isAccountMenuOpen }">
         <button
           class="user-summary"
           type="button"

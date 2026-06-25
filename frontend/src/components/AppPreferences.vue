@@ -20,7 +20,12 @@ const toggleLocale = () => {
 
 <template>
   <div class="app-preferences" :class="{ compact }" aria-label="Application preferences">
-    <button class="preference-button" type="button" :title="t('common.language')" @click="toggleLocale">
+    <button
+      class="preference-button"
+      type="button"
+      :title="t('common.language')"
+      @click="toggleLocale"
+    >
       <Languages :size="18" aria-hidden="true" />
       <span class="preference-label">{{ t('common.language') }}</span>
       <strong>{{ locale === 'en' ? 'EN' : 'PT' }}</strong>

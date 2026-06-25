@@ -1,12 +1,59 @@
 <script setup lang="ts">
-import { computed, nextTick, reactive, ref } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 
+import FieldHint from '@/components/FieldHint.vue'
 import PrivateWorkspaceShell from '@/components/PrivateWorkspaceShell.vue'
 import { useI18n } from '@/composables/useI18n'
+import { useNotifications } from '@/composables/useNotifications'
+import { getClinicalModuleById } from '@/data/modules'
 import type { ModuleField } from '@/data/workflow'
-import { locales, type Locale, type LocalizedText } from '@/i18n/locales'
+import { locales, type Locale } from '@/i18n/locales'
 
 type BuilderFieldType = ModuleField['type']
+type DisplayEqualsKind = 'string' | 'boolean' | 'stringArray'
+
+type DraftClinicalItem = {
+  uid: string
+  title: string
+  description: string
+}
+
+type DraftGuide = {
+  uid: string
+  title: string
+  description: string
+  criteriaText: string
+  actionsText: string
+}
+
+type DraftSourceFigure = {
+  uid: string
+  title: string
+  source: string
+  sourceUrl: string
+  citation: string
+  notes: string
+  imageUrl: string
+  altText: string
+}
+
+type DraftPreset = {
+  uid: string
+  id: string
+  title: string
+  description: string
+  answersJson: string
+}
+
+type DraftDisplayIf = {
+  enabled: boolean
+  fieldKey: string
+  equalsKind: DisplayEqualsKind
+  equalsString: string
+  equalsBoolean: boolean
+  equalsArrayText: string
+}
 
 type DraftOption = {
   uid: string
@@ -34,6 +81,7 @@ type DraftField = {
   defaultBoolean: boolean
   defaultText: string
   defaultMultiselect: string[]
+  displayIf: DraftDisplayIf
   narrative: DraftNarrative
   options: DraftOption[]
   keyWasEdited: boolean
@@ -43,6 +91,7 @@ type DraftSection = {
   uid: string
   id: string
   title: string
+  description: string
   idWasEdited: boolean
   fields: DraftField[]
 }
@@ -50,24 +99,41 @@ type DraftSection = {
 type DraftWorkflow = {
   id: string
   title: string
+  slug: string
+  description: string
   overview: string
   hpiTemplate: string
   idWasEdited: boolean
   sections: DraftSection[]
+  redFlags: DraftClinicalItem[]
+  differentials: DraftClinicalItem[]
+  workup: DraftClinicalItem[]
+  quickGuides: DraftGuide[]
+  sourceFigures: DraftSourceFigure[]
+  presets: DraftPreset[]
 }
 
 const { locale: appLocale, t } = useI18n()
+const { notify } = useNotifications()
+const route = useRoute()
 const authoringLocale = ref<Locale>(appLocale.value)
 const availableLocales = Object.keys(locales) as Locale[]
-const firstAvailableLocale: Locale = availableLocales[0] ?? 'en'
 
 const draft = reactive<DraftWorkflow>({
   id: 'new-workflow',
   title: 'New clinical workflow',
+  slug: 'new-clinical-workflow',
+  description: '',
   overview: 'Describe the clinical context and what this workflow helps collect.',
   hpiTemplate: '',
   idWasEdited: false,
   sections: [],
+  redFlags: [],
+  differentials: [],
+  workup: [],
+  quickGuides: [],
+  sourceFigures: [],
+  presets: [],
 })
 
 const newSectionTitle = reactive({
@@ -82,6 +148,17 @@ const importError = ref('')
 
 const fieldTypes: BuilderFieldType[] = ['text', 'boolean', 'select', 'multiselect']
 let nextDraftUid = 1
+
+const fieldTypeLabel = (fieldType: BuilderFieldType): string => {
+  const labels: Record<BuilderFieldType, string> = {
+    text: t('builder.fieldTypeText'),
+    boolean: t('builder.fieldTypeBoolean'),
+    select: t('builder.fieldTypeSelect'),
+    multiselect: t('builder.fieldTypeMultiselect'),
+  }
+
+  return labels[fieldType]
+}
 
 const createDraftUid = (): string => {
   const uid = `draft-${nextDraftUid}`
@@ -116,6 +193,15 @@ const createDraftOption = (label = ''): DraftOption => ({
   valueWasEdited: false,
 })
 
+const createDraftDisplayIf = (): DraftDisplayIf => ({
+  enabled: false,
+  fieldKey: '',
+  equalsKind: 'boolean',
+  equalsString: '',
+  equalsBoolean: true,
+  equalsArrayText: '',
+})
+
 const createDraftField = (
   label = '',
   type: BuilderFieldType = 'text',
@@ -131,6 +217,7 @@ const createDraftField = (
   defaultBoolean: false,
   defaultText: '',
   defaultMultiselect: [],
+  displayIf: createDraftDisplayIf(),
   narrative: {
     prefix: '',
     suffix: '',
@@ -139,6 +226,39 @@ const createDraftField = (
   },
   options: [],
   keyWasEdited: false,
+})
+
+const createDraftClinicalItem = (title = '', description = ''): DraftClinicalItem => ({
+  uid: createDraftUid(),
+  title,
+  description,
+})
+
+const createDraftGuide = (): DraftGuide => ({
+  uid: createDraftUid(),
+  title: '',
+  description: '',
+  criteriaText: '',
+  actionsText: '',
+})
+
+const createDraftSourceFigure = (): DraftSourceFigure => ({
+  uid: createDraftUid(),
+  title: '',
+  source: '',
+  sourceUrl: '',
+  citation: '',
+  notes: '',
+  imageUrl: '',
+  altText: '',
+})
+
+const createDraftPreset = (): DraftPreset => ({
+  uid: createDraftUid(),
+  id: '',
+  title: '',
+  description: '',
+  answersJson: '{}',
 })
 
 const getNewField = (sectionId: string): DraftField => {
@@ -150,6 +270,7 @@ const getNewField = (sectionId: string): DraftField => {
 const updateWorkflowTitle = (event: Event): void => {
   const title = (event.target as HTMLInputElement).value
   draft.title = title
+  draft.slug = slugify(title)
 
   if (!draft.idWasEdited) {
     draft.id = slugify(title)
@@ -207,6 +328,11 @@ const addSection = (): void => {
   const title = newSectionTitle.value.trim()
 
   if (!title) {
+    notify({
+      type: 'warn',
+      title: t('notifications.missingSectionTitleTitle'),
+      message: t('notifications.missingSectionTitleMessage'),
+    })
     return
   }
 
@@ -214,6 +340,7 @@ const addSection = (): void => {
     uid: createDraftUid(),
     id: slugify(title) || `section-${draft.sections.length + 1}`,
     title,
+    description: '',
     idWasEdited: false,
     fields: [],
   })
@@ -226,6 +353,11 @@ const addField = (section: DraftSection): void => {
   const label = newField.label.trim()
 
   if (!label) {
+    notify({
+      type: 'warn',
+      title: t('notifications.missingFieldLabelTitle'),
+      message: t('notifications.missingFieldLabelMessage'),
+    })
     return
   }
 
@@ -270,62 +402,135 @@ const removeOption = (field: DraftField, option: DraftOption): void => {
   }
 }
 
-const localizedDraftText = (value: string): LocalizedText => {
-  return availableLocales.reduce((localizedText, locale) => {
-    localizedText[locale] = locale === authoringLocale.value ? value : ''
-    return localizedText
-  }, {} as LocalizedText)
+const addClinicalItem = (items: DraftClinicalItem[]): void => {
+  items.push(createDraftClinicalItem())
+}
+
+const removeClinicalItem = (items: DraftClinicalItem[], item: DraftClinicalItem): void => {
+  const index = items.findIndex((currentItem) => currentItem.uid === item.uid)
+
+  if (index >= 0) {
+    items.splice(index, 1)
+  }
+}
+
+const addGuide = (): void => {
+  draft.quickGuides.push(createDraftGuide())
+}
+
+const removeGuide = (guide: DraftGuide): void => {
+  draft.quickGuides = draft.quickGuides.filter((currentGuide) => currentGuide.uid !== guide.uid)
+}
+
+const addSourceFigure = (): void => {
+  draft.sourceFigures.push(createDraftSourceFigure())
+}
+
+const removeSourceFigure = (figure: DraftSourceFigure): void => {
+  draft.sourceFigures = draft.sourceFigures.filter(
+    (currentFigure) => currentFigure.uid !== figure.uid,
+  )
+}
+
+const addPreset = (): void => {
+  draft.presets.push(createDraftPreset())
+}
+
+const removePreset = (preset: DraftPreset): void => {
+  draft.presets = draft.presets.filter((currentPreset) => currentPreset.uid !== preset.uid)
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-const detectLocale = (value: unknown): Locale | null => {
-  if (!isRecord(value)) {
-    return null
-  }
-
-  return (
-    availableLocales.find((locale) => {
-      const localizedValue = value[locale]
-      return typeof localizedValue === 'string' && localizedValue.trim().length > 0
-    }) ?? null
-  )
-}
-
-const readLocalizedText = (value: unknown, locale: Locale): string => {
-  if (typeof value === 'string') {
-    return value
-  }
-
-  if (!isRecord(value)) {
-    return ''
-  }
-
-  const requestedText = value[locale]
-
-  if (typeof requestedText === 'string' && requestedText.trim()) {
-    return requestedText
-  }
-
-  for (const availableLocale of availableLocales) {
-    const fallbackText = value[availableLocale]
-
-    if (typeof fallbackText === 'string' && fallbackText.trim()) {
-      return fallbackText
-    }
-  }
-
-  return ''
-}
+const readWorkflowText = (value: unknown): string => (typeof value === 'string' ? value : '')
 
 const readFieldType = (value: unknown): BuilderFieldType => {
   return fieldTypes.includes(value as BuilderFieldType) ? (value as BuilderFieldType) : 'text'
 }
 
 const readStringArray = (value: unknown): string[] => {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : []
+}
+
+const splitLines = (value: string): string[] =>
+  value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+const joinLines = (value: unknown): string => readStringArray(value).join('\n')
+
+const readJsonObjectText = (value: unknown): string => {
+  return isRecord(value) ? JSON.stringify(value, null, 2) : '{}'
+}
+
+const readClinicalItems = (value: unknown): DraftClinicalItem[] => {
+  return (Array.isArray(value) ? value : [])
+    .filter(isRecord)
+    .map((item) =>
+      createDraftClinicalItem(readWorkflowText(item.title), readWorkflowText(item.description)),
+    )
+}
+
+const readGuides = (value: unknown): DraftGuide[] => {
+  return (Array.isArray(value) ? value : []).filter(isRecord).map((item) => ({
+    uid: createDraftUid(),
+    title: readWorkflowText(item.title),
+    description: readWorkflowText(item.description),
+    criteriaText: joinLines(item.criteria),
+    actionsText: joinLines(item.actions),
+  }))
+}
+
+const readSourceFigures = (value: unknown): DraftSourceFigure[] => {
+  return (Array.isArray(value) ? value : []).filter(isRecord).map((item) => ({
+    uid: createDraftUid(),
+    title: readWorkflowText(item.title),
+    source: readWorkflowText(item.source),
+    sourceUrl: readWorkflowText(item.sourceUrl),
+    citation: readWorkflowText(item.citation),
+    notes: readWorkflowText(item.notes),
+    imageUrl: readWorkflowText(item.imageUrl),
+    altText: readWorkflowText(item.altText),
+  }))
+}
+
+const readPresets = (value: unknown): DraftPreset[] => {
+  return (Array.isArray(value) ? value : []).filter(isRecord).map((item) => ({
+    uid: createDraftUid(),
+    id: readWorkflowText(item.id),
+    title: readWorkflowText(item.title),
+    description: readWorkflowText(item.description),
+    answersJson: readJsonObjectText(item.answers),
+  }))
+}
+
+const readDisplayIf = (value: unknown): DraftDisplayIf => {
+  const displayIf = createDraftDisplayIf()
+
+  if (!isRecord(value)) {
+    return displayIf
+  }
+
+  displayIf.enabled = true
+  displayIf.fieldKey = readWorkflowText(value.fieldKey)
+
+  if (Array.isArray(value.equals)) {
+    displayIf.equalsKind = 'stringArray'
+    displayIf.equalsArrayText = readStringArray(value.equals).join(', ')
+  } else if (typeof value.equals === 'boolean') {
+    displayIf.equalsKind = 'boolean'
+    displayIf.equalsBoolean = value.equals
+  } else if (typeof value.equals === 'string') {
+    displayIf.equalsKind = 'string'
+    displayIf.equalsString = value.equals
+  }
+
+  return displayIf
 }
 
 const importWorkflow = (workflow: unknown): void => {
@@ -333,19 +538,26 @@ const importWorkflow = (workflow: unknown): void => {
     throw new Error(t('builder.importInvalid'))
   }
 
-  const detectedLocale =
-    detectLocale(workflow.title) ??
-    detectLocale(workflow.overview) ??
-    availableLocales.find((locale) => locale === authoringLocale.value) ??
-    firstAvailableLocale
+  if (!availableLocales.includes(workflow.language as Locale)) {
+    throw new Error(t('builder.importInvalid'))
+  }
 
+  const detectedLocale = workflow.language as Locale
   authoringLocale.value = detectedLocale
   draft.id = typeof workflow.id === 'string' ? workflow.id : 'imported-workflow'
-  draft.title = readLocalizedText(workflow.title, detectedLocale)
-  draft.overview = readLocalizedText(workflow.overview, detectedLocale)
-  draft.hpiTemplate = readLocalizedText(workflow.hpiTemplate, detectedLocale)
+  draft.slug = readWorkflowText(workflow.slug)
+  draft.title = readWorkflowText(workflow.title)
+  draft.description = readWorkflowText(workflow.description)
+  draft.overview = readWorkflowText(workflow.overview)
+  draft.hpiTemplate = readWorkflowText(workflow.hpiTemplate)
   draft.idWasEdited = true
   draft.sections = []
+  draft.redFlags = readClinicalItems(workflow.redFlags)
+  draft.differentials = readClinicalItems(workflow.differentials)
+  draft.workup = readClinicalItems(workflow.workup)
+  draft.quickGuides = readGuides(workflow.quickGuides)
+  draft.sourceFigures = readSourceFigures(workflow.sourceFigures)
+  draft.presets = readPresets(workflow.presets)
   expandedFieldUid.value = null
 
   for (const sectionValue of Array.isArray(workflow.sections) ? workflow.sections : []) {
@@ -356,7 +568,8 @@ const importWorkflow = (workflow: unknown): void => {
     const section: DraftSection = {
       uid: createDraftUid(),
       id: typeof sectionValue.id === 'string' ? sectionValue.id : '',
-      title: readLocalizedText(sectionValue.title, detectedLocale),
+      title: readWorkflowText(sectionValue.title),
+      description: readWorkflowText(sectionValue.description),
       idWasEdited: true,
       fields: [],
     }
@@ -367,20 +580,23 @@ const importWorkflow = (workflow: unknown): void => {
       }
 
       const field = createDraftField(
-        readLocalizedText(fieldValue.label, detectedLocale),
+        readWorkflowText(fieldValue.label),
         readFieldType(fieldValue.type),
         typeof fieldValue.key === 'string' ? fieldValue.key : '',
       )
       field.keyWasEdited = true
       field.required = fieldValue.required === true
-      field.helperText = readLocalizedText(fieldValue.helperText, detectedLocale)
+      field.helperText = readWorkflowText(fieldValue.helperText)
+      field.displayIf = readDisplayIf(fieldValue.displayIf)
 
       if (field.type === 'text') {
-        field.placeholder = readLocalizedText(fieldValue.placeholder, detectedLocale)
+        field.placeholder = readWorkflowText(fieldValue.placeholder)
+        field.defaultText =
+          typeof fieldValue.defaultValue === 'string' ? fieldValue.defaultValue : ''
 
         if (isRecord(fieldValue.narrative)) {
-          field.narrative.prefix = readLocalizedText(fieldValue.narrative.prefix, detectedLocale)
-          field.narrative.suffix = readLocalizedText(fieldValue.narrative.suffix, detectedLocale)
+          field.narrative.prefix = readWorkflowText(fieldValue.narrative.prefix)
+          field.narrative.suffix = readWorkflowText(fieldValue.narrative.suffix)
         }
       }
 
@@ -388,8 +604,8 @@ const importWorkflow = (workflow: unknown): void => {
         field.defaultBoolean = fieldValue.defaultValue === true
 
         if (isRecord(fieldValue.narrative)) {
-          field.narrative.whenTrue = readLocalizedText(fieldValue.narrative.whenTrue, detectedLocale)
-          field.narrative.whenFalse = readLocalizedText(fieldValue.narrative.whenFalse, detectedLocale)
+          field.narrative.whenTrue = readWorkflowText(fieldValue.narrative.whenTrue)
+          field.narrative.whenFalse = readWorkflowText(fieldValue.narrative.whenFalse)
         }
       }
 
@@ -399,13 +615,14 @@ const importWorkflow = (workflow: unknown): void => {
           .map((optionValue) => ({
             uid: createDraftUid(),
             value: typeof optionValue.value === 'string' ? optionValue.value : '',
-            label: readLocalizedText(optionValue.label, detectedLocale),
-            narrative: readLocalizedText(optionValue.narrative, detectedLocale),
+            label: readWorkflowText(optionValue.label),
+            narrative: readWorkflowText(optionValue.narrative),
             valueWasEdited: true,
           }))
 
         if (field.type === 'select') {
-          field.defaultText = typeof fieldValue.defaultValue === 'string' ? fieldValue.defaultValue : ''
+          field.defaultText =
+            typeof fieldValue.defaultValue === 'string' ? fieldValue.defaultValue : ''
         } else {
           field.defaultMultiselect = readStringArray(fieldValue.defaultValue)
         }
@@ -421,6 +638,25 @@ const importWorkflow = (workflow: unknown): void => {
     delete newFieldBySection[sectionId]
   }
 }
+
+const editWorkflowId = computed(() => {
+  const moduleId = route.params.moduleId
+
+  return Array.isArray(moduleId) ? moduleId[0] : moduleId
+})
+
+watch(
+  [editWorkflowId, appLocale],
+  ([moduleId, locale]) => {
+    if (!moduleId) {
+      return
+    }
+
+    importWorkflow(getClinicalModuleById(moduleId, locale))
+    draft.slug = draft.slug || slugify(draft.title)
+  },
+  { immediate: true },
+)
 
 const downloadWorkflowJson = (): void => {
   const json = JSON.stringify(workflowPreview.value, null, 2)
@@ -456,24 +692,47 @@ const importWorkflowJson = async (event: Event): Promise<void> => {
   }
 }
 
+const createDisplayIfPreview = (displayIf: DraftDisplayIf) => {
+  if (!displayIf.enabled || !displayIf.fieldKey.trim()) {
+    return undefined
+  }
+
+  if (displayIf.equalsKind === 'boolean') {
+    return {
+      fieldKey: displayIf.fieldKey,
+      equals: displayIf.equalsBoolean,
+    }
+  }
+
+  if (displayIf.equalsKind === 'stringArray') {
+    return {
+      fieldKey: displayIf.fieldKey,
+      equals: splitLines(displayIf.equalsArrayText.replaceAll(',', '\n')),
+    }
+  }
+
+  return {
+    fieldKey: displayIf.fieldKey,
+    equals: displayIf.equalsString,
+  }
+}
+
 const createFieldPreview = (field: DraftField) => ({
   key: field.key,
-  label: localizedDraftText(field.label),
+  label: field.label,
   type: field.type,
   ...(field.required ? { required: true } : {}),
-  ...(field.helperText ? { helperText: localizedDraftText(field.helperText) } : {}),
-  ...(field.type === 'text' && field.placeholder
-    ? { placeholder: localizedDraftText(field.placeholder) }
+  ...(field.helperText ? { helperText: field.helperText } : {}),
+  ...(createDisplayIfPreview(field.displayIf)
+    ? { displayIf: createDisplayIfPreview(field.displayIf) }
     : {}),
+  ...(field.type === 'text' && field.placeholder ? { placeholder: field.placeholder } : {}),
+  ...(field.type === 'text' && field.defaultText ? { defaultValue: field.defaultText } : {}),
   ...(field.type === 'text' && (field.narrative.prefix || field.narrative.suffix)
     ? {
         narrative: {
-          ...(field.narrative.prefix
-            ? { prefix: localizedDraftText(field.narrative.prefix) }
-            : {}),
-          ...(field.narrative.suffix
-            ? { suffix: localizedDraftText(field.narrative.suffix) }
-            : {}),
+          ...(field.narrative.prefix ? { prefix: field.narrative.prefix } : {}),
+          ...(field.narrative.suffix ? { suffix: field.narrative.suffix } : {}),
         },
       }
     : {}),
@@ -483,12 +742,8 @@ const createFieldPreview = (field: DraftField) => ({
         ...(field.narrative.whenTrue || field.narrative.whenFalse
           ? {
               narrative: {
-                ...(field.narrative.whenTrue
-                  ? { whenTrue: localizedDraftText(field.narrative.whenTrue) }
-                  : {}),
-                ...(field.narrative.whenFalse
-                  ? { whenFalse: localizedDraftText(field.narrative.whenFalse) }
-                  : {}),
+                ...(field.narrative.whenTrue ? { whenTrue: field.narrative.whenTrue } : {}),
+                ...(field.narrative.whenFalse ? { whenFalse: field.narrative.whenFalse } : {}),
               },
             }
           : {}),
@@ -497,9 +752,9 @@ const createFieldPreview = (field: DraftField) => ({
   ...(field.type === 'select'
     ? {
         options: field.options.map((option) => ({
-          label: localizedDraftText(option.label),
+          label: option.label,
           value: option.value,
-          ...(option.narrative ? { narrative: localizedDraftText(option.narrative) } : {}),
+          ...(option.narrative ? { narrative: option.narrative } : {}),
         })),
         ...(field.defaultText ? { defaultValue: field.defaultText } : {}),
       }
@@ -507,31 +762,95 @@ const createFieldPreview = (field: DraftField) => ({
   ...(field.type === 'multiselect'
     ? {
         options: field.options.map((option) => ({
-          label: localizedDraftText(option.label),
+          label: option.label,
           value: option.value,
-          ...(option.narrative ? { narrative: localizedDraftText(option.narrative) } : {}),
+          ...(option.narrative ? { narrative: option.narrative } : {}),
         })),
         defaultValue: field.defaultMultiselect,
       }
     : {}),
 })
 
+const createClinicalItemPreview = (item: DraftClinicalItem) => ({
+  title: item.title,
+  ...(item.description ? { description: item.description } : {}),
+})
+
+const createGuidePreview = (guide: DraftGuide) => ({
+  title: guide.title,
+  ...(guide.description ? { description: guide.description } : {}),
+  ...(splitLines(guide.criteriaText).length > 0
+    ? { criteria: splitLines(guide.criteriaText) }
+    : {}),
+  ...(splitLines(guide.actionsText).length > 0 ? { actions: splitLines(guide.actionsText) } : {}),
+})
+
+const createSourceFigurePreview = (figure: DraftSourceFigure) => ({
+  title: figure.title,
+  source: figure.source,
+  ...(figure.sourceUrl ? { sourceUrl: figure.sourceUrl } : {}),
+  ...(figure.citation ? { citation: figure.citation } : {}),
+  ...(figure.notes ? { notes: figure.notes } : {}),
+  ...(figure.imageUrl ? { imageUrl: figure.imageUrl } : {}),
+  ...(figure.altText ? { altText: figure.altText } : {}),
+})
+
+const parsePresetAnswers = (preset: DraftPreset) => {
+  const parsedValue = JSON.parse(preset.answersJson || '{}')
+
+  if (!isRecord(parsedValue)) {
+    throw new Error('Preset answers must be a JSON object.')
+  }
+
+  return parsedValue
+}
+
+const parsePresetAnswersSafely = (preset: DraftPreset) => {
+  try {
+    return parsePresetAnswers(preset)
+  } catch {
+    return {}
+  }
+}
+
+const createPresetPreview = (preset: DraftPreset) => ({
+  id: preset.id,
+  title: preset.title,
+  ...(preset.description ? { description: preset.description } : {}),
+  answers: parsePresetAnswersSafely(preset),
+})
+
 const workflowPreview = computed(() => ({
   id: draft.id,
-  title: localizedDraftText(draft.title),
-  overview: localizedDraftText(draft.overview),
+  language: authoringLocale.value,
+  ...(draft.slug ? { slug: draft.slug } : {}),
+  title: draft.title,
+  ...(draft.description ? { description: draft.description } : {}),
+  overview: draft.overview,
   sections: draft.sections.map((section) => ({
     id: section.id,
-    title: localizedDraftText(section.title),
+    title: section.title,
+    ...(section.description ? { description: section.description } : {}),
     fields: section.fields.map(createFieldPreview),
   })),
-  redFlags: [],
-  differentials: [],
-  workup: [],
-  hpiTemplate: localizedDraftText(draft.hpiTemplate),
+  redFlags: draft.redFlags.map(createClinicalItemPreview),
+  differentials: draft.differentials.map(createClinicalItemPreview),
+  workup: draft.workup.map(createClinicalItemPreview),
+  ...(draft.quickGuides.length > 0
+    ? { quickGuides: draft.quickGuides.map(createGuidePreview) }
+    : {}),
+  ...(draft.sourceFigures.length > 0
+    ? { sourceFigures: draft.sourceFigures.map(createSourceFigurePreview) }
+    : {}),
+  ...(draft.presets.length > 0 ? { presets: draft.presets.map(createPresetPreview) } : {}),
+  hpiTemplate: draft.hpiTemplate,
 }))
 
 const formattedPreview = computed(() => JSON.stringify(workflowPreview.value, null, 2))
+
+const allFieldKeys = computed(() =>
+  draft.sections.flatMap((section) => section.fields.map((field) => field.key).filter(Boolean)),
+)
 
 const availableTemplateFields = computed(() =>
   draft.sections.flatMap((section) =>
@@ -539,9 +858,7 @@ const availableTemplateFields = computed(() =>
       key: field.key,
       label: field.label || field.key,
       token:
-        field.type === 'multiselect'
-          ? `{{ ${field.key} | list: locale }}`
-          : `{{ ${field.key} }}`,
+        field.type === 'multiselect' ? `{{ ${field.key} | list: locale }}` : `{{ ${field.key} }}`,
     })),
   ),
 )
@@ -588,7 +905,9 @@ const validationMessages = computed(() => {
   )
 
   if (duplicateSectionIds.length > 0) {
-    messages.push(`${t('builder.validationDuplicateSectionIds')}: ${duplicateSectionIds.join(', ')}`)
+    messages.push(
+      `${t('builder.validationDuplicateSectionIds')}: ${duplicateSectionIds.join(', ')}`,
+    )
   }
 
   if (duplicateFieldKeys.length > 0) {
@@ -597,6 +916,12 @@ const validationMessages = computed(() => {
 
   for (const section of draft.sections) {
     for (const field of section.fields) {
+      if (field.displayIf.enabled && !allFieldKeys.value.includes(field.displayIf.fieldKey)) {
+        messages.push(
+          `${t('builder.validationMissingDisplayIfField')} (${field.label || field.key})`,
+        )
+      }
+
       if (field.type !== 'select' && field.type !== 'multiselect') {
         continue
       }
@@ -608,6 +933,20 @@ const validationMessages = computed(() => {
           `${t('builder.validationDuplicateOptionValues')} (${field.label || field.key}): ${duplicateOptionValues.join(', ')}`,
         )
       }
+    }
+  }
+
+  const duplicatePresetIds = findDuplicates(draft.presets.map((preset) => preset.id))
+
+  if (duplicatePresetIds.length > 0) {
+    messages.push(`${t('builder.validationDuplicatePresetIds')}: ${duplicatePresetIds.join(', ')}`)
+  }
+
+  for (const preset of draft.presets) {
+    try {
+      parsePresetAnswers(preset)
+    } catch {
+      messages.push(`${t('builder.validationInvalidPresetJson')} (${preset.title || preset.id})`)
     }
   }
 
@@ -644,13 +983,19 @@ const validationMessages = computed(() => {
               </label>
 
               <label class="builder-field">
-                <span>{{ t('builder.workflowId') }}</span>
-                <input
-                  class="text-input"
-                  type="text"
-                  :value="draft.id"
-                  @input="updateWorkflowId"
-                />
+                <span class="field-label-row">
+                  <span>{{ t('builder.workflowId') }}</span>
+                  <FieldHint :message="t('builder.workflowIdHint')" />
+                </span>
+                <input class="text-input" type="text" :value="draft.id" @input="updateWorkflowId" />
+              </label>
+
+              <label class="builder-field">
+                <span class="field-label-row">
+                  <span>{{ t('builder.workflowSlug') }}</span>
+                  <FieldHint :message="t('builder.workflowSlugHint')" />
+                </span>
+                <input v-model="draft.slug" class="text-input" type="text" />
               </label>
 
               <label class="builder-field">
@@ -660,6 +1005,11 @@ const validationMessages = computed(() => {
                     {{ locales[locale].label }}
                   </option>
                 </select>
+              </label>
+
+              <label class="builder-field full-span">
+                <span>{{ t('builder.workflowDescription') }}</span>
+                <textarea v-model="draft.description" class="text-input builder-textarea" />
               </label>
 
               <label class="builder-field full-span">
@@ -708,13 +1058,20 @@ const validationMessages = computed(() => {
                       />
                     </label>
                     <label class="builder-field">
-                      <span>{{ t('builder.sectionId') }}</span>
+                      <span class="field-label-row">
+                        <span>{{ t('builder.sectionId') }}</span>
+                        <FieldHint :message="t('builder.sectionIdHint')" />
+                      </span>
                       <input
                         class="text-input"
                         type="text"
                         :value="section.id"
                         @input="updateSectionId(section, $event)"
                       />
+                    </label>
+                    <label class="builder-field full-span">
+                      <span>{{ t('builder.sectionDescription') }}</span>
+                      <input v-model="section.description" class="text-input" type="text" />
                     </label>
                   </div>
                   <div class="builder-row-actions">
@@ -735,7 +1092,7 @@ const validationMessages = computed(() => {
                   <div v-for="field in section.fields" :key="field.uid" class="builder-field-row">
                     <select v-model="field.type" class="text-input">
                       <option v-for="fieldType in fieldTypes" :key="fieldType" :value="fieldType">
-                        {{ fieldType }}
+                        {{ fieldTypeLabel(fieldType) }}
                       </option>
                     </select>
                     <input
@@ -748,6 +1105,7 @@ const validationMessages = computed(() => {
                       class="text-input"
                       type="text"
                       :value="field.key"
+                      :title="t('builder.fieldKeyHint')"
                       @input="updateFieldKey(field, $event)"
                     />
                     <button
@@ -761,7 +1119,11 @@ const validationMessages = computed(() => {
                           : t('builder.configureField')
                       }}
                     </button>
-                    <button class="danger-action" type="button" @click="removeField(section, field)">
+                    <button
+                      class="danger-action"
+                      type="button"
+                      @click="removeField(section, field)"
+                    >
                       {{ t('builder.removeField') }}
                     </button>
 
@@ -780,14 +1142,95 @@ const validationMessages = computed(() => {
                         </label>
 
                         <label class="builder-field full-span">
-                          <span>{{ t('builder.helperText') }}</span>
+                          <span class="field-label-row">
+                            <span>{{ t('builder.helperText') }}</span>
+                            <FieldHint :message="t('builder.helperTextHint')" />
+                          </span>
                           <input v-model="field.helperText" class="text-input" type="text" />
                         </label>
+
+                        <fieldset class="builder-field full-span display-condition">
+                          <legend class="field-label-row">
+                            <span>{{ t('builder.displayIf') }}</span>
+                            <FieldHint :message="t('builder.displayIfHint')" />
+                          </legend>
+                          <label class="check-option single-check">
+                            <input v-model="field.displayIf.enabled" type="checkbox" />
+                            <span>{{ t('builder.enableDisplayIf') }}</span>
+                          </label>
+
+                          <div v-if="field.displayIf.enabled" class="builder-form-grid">
+                            <label class="builder-field">
+                              <span class="field-label-row">
+                                <span>{{ t('builder.displayIfField') }}</span>
+                                <FieldHint :message="t('builder.displayIfFieldHint')" />
+                              </span>
+                              <select v-model="field.displayIf.fieldKey" class="text-input">
+                                <option value="">{{ t('builder.noDefault') }}</option>
+                                <option
+                                  v-for="fieldKey in allFieldKeys"
+                                  :key="fieldKey"
+                                  :value="fieldKey"
+                                >
+                                  {{ fieldKey }}
+                                </option>
+                              </select>
+                            </label>
+
+                            <label class="builder-field">
+                              <span>{{ t('builder.displayIfType') }}</span>
+                              <select v-model="field.displayIf.equalsKind" class="text-input">
+                                <option value="boolean">{{ t('builder.displayIfBoolean') }}</option>
+                                <option value="string">{{ t('builder.displayIfString') }}</option>
+                                <option value="stringArray">
+                                  {{ t('builder.displayIfStringArray') }}
+                                </option>
+                              </select>
+                            </label>
+
+                            <label
+                              v-if="field.displayIf.equalsKind === 'boolean'"
+                              class="builder-field"
+                            >
+                              <span>{{ t('builder.displayIfEquals') }}</span>
+                              <select v-model="field.displayIf.equalsBoolean" class="text-input">
+                                <option :value="true">{{ t('builder.booleanTrue') }}</option>
+                                <option :value="false">{{ t('builder.booleanFalse') }}</option>
+                              </select>
+                            </label>
+
+                            <label
+                              v-else-if="field.displayIf.equalsKind === 'string'"
+                              class="builder-field"
+                            >
+                              <span>{{ t('builder.displayIfEquals') }}</span>
+                              <input
+                                v-model="field.displayIf.equalsString"
+                                class="text-input"
+                                type="text"
+                              />
+                            </label>
+
+                            <label v-else class="builder-field full-span">
+                              <span>{{ t('builder.displayIfEquals') }}</span>
+                              <input
+                                v-model="field.displayIf.equalsArrayText"
+                                class="text-input"
+                                type="text"
+                                :placeholder="t('builder.displayIfArrayPlaceholder')"
+                              />
+                            </label>
+                          </div>
+                        </fieldset>
                       </div>
 
                       <div v-if="field.type === 'text'" class="field-settings-group">
                         <h4>{{ t('builder.textSettings') }}</h4>
                         <div class="builder-form-grid">
+                          <label class="builder-field">
+                            <span>{{ t('builder.defaultText') }}</span>
+                            <input v-model="field.defaultText" class="text-input" type="text" />
+                          </label>
                           <label class="builder-field full-span">
                             <span>{{ t('builder.placeholder') }}</span>
                             <input v-model="field.placeholder" class="text-input" type="text" />
@@ -846,7 +1289,11 @@ const validationMessages = computed(() => {
                       >
                         <div class="builder-card-header compact-header">
                           <h4>{{ t('builder.optionSettings') }}</h4>
-                          <button class="secondary-action compact-action" type="button" @click="addOption(field)">
+                          <button
+                            class="secondary-action compact-action"
+                            type="button"
+                            @click="addOption(field)"
+                          >
                             {{ t('builder.addOption') }}
                           </button>
                         </div>
@@ -912,7 +1359,11 @@ const validationMessages = computed(() => {
                             type="text"
                             :placeholder="t('builder.optionNarrativePlaceholder')"
                           />
-                          <button class="danger-action" type="button" @click="removeOption(field, option)">
+                          <button
+                            class="danger-action"
+                            type="button"
+                            @click="removeOption(field, option)"
+                          >
                             {{ t('builder.removeField') }}
                           </button>
                         </div>
@@ -934,11 +1385,12 @@ const validationMessages = computed(() => {
                     type="text"
                     :value="getNewField(section.uid).key"
                     :placeholder="t('builder.fieldKeyPlaceholder')"
+                    :title="t('builder.fieldKeyHint')"
                     @input="updateFieldKey(getNewField(section.uid), $event)"
                   />
                   <select v-model="getNewField(section.uid).type" class="text-input">
                     <option v-for="fieldType in fieldTypes" :key="fieldType" :value="fieldType">
-                      {{ fieldType }}
+                      {{ fieldTypeLabel(fieldType) }}
                     </option>
                   </select>
                   <button class="secondary-action" type="button" @click="addField(section)">
@@ -951,12 +1403,290 @@ const validationMessages = computed(() => {
 
           <section class="builder-card">
             <div class="section-heading">
+              <h2>{{ t('builder.clinicalGuidanceTitle') }}</h2>
+              <p class="section-description">{{ t('builder.clinicalGuidanceDescription') }}</p>
+            </div>
+
+            <div class="clinical-item-editor">
+              <div class="builder-card-header compact-header">
+                <h3>{{ t('guidance.redFlagsTitle') }}</h3>
+                <button
+                  class="secondary-action compact-action"
+                  type="button"
+                  @click="addClinicalItem(draft.redFlags)"
+                >
+                  {{ t('builder.addItem') }}
+                </button>
+              </div>
+              <p v-if="draft.redFlags.length === 0" class="builder-empty compact">
+                {{ t('builder.emptyClinicalItems') }}
+              </p>
+              <div v-for="item in draft.redFlags" :key="item.uid" class="builder-option-row">
+                <input
+                  v-model="item.title"
+                  class="text-input"
+                  type="text"
+                  :placeholder="t('builder.itemTitle')"
+                />
+                <input
+                  v-model="item.description"
+                  class="text-input"
+                  type="text"
+                  :placeholder="t('builder.itemDescription')"
+                />
+                <button
+                  class="danger-action"
+                  type="button"
+                  @click="removeClinicalItem(draft.redFlags, item)"
+                >
+                  {{ t('builder.removeField') }}
+                </button>
+              </div>
+            </div>
+
+            <div class="clinical-item-editor">
+              <div class="builder-card-header compact-header">
+                <h3>{{ t('guidance.differentialsTitle') }}</h3>
+                <button
+                  class="secondary-action compact-action"
+                  type="button"
+                  @click="addClinicalItem(draft.differentials)"
+                >
+                  {{ t('builder.addItem') }}
+                </button>
+              </div>
+              <p v-if="draft.differentials.length === 0" class="builder-empty compact">
+                {{ t('builder.emptyClinicalItems') }}
+              </p>
+              <div v-for="item in draft.differentials" :key="item.uid" class="builder-option-row">
+                <input
+                  v-model="item.title"
+                  class="text-input"
+                  type="text"
+                  :placeholder="t('builder.itemTitle')"
+                />
+                <input
+                  v-model="item.description"
+                  class="text-input"
+                  type="text"
+                  :placeholder="t('builder.itemDescription')"
+                />
+                <button
+                  class="danger-action"
+                  type="button"
+                  @click="removeClinicalItem(draft.differentials, item)"
+                >
+                  {{ t('builder.removeField') }}
+                </button>
+              </div>
+            </div>
+
+            <div class="clinical-item-editor">
+              <div class="builder-card-header compact-header">
+                <h3>{{ t('guidance.workupTitle') }}</h3>
+                <button
+                  class="secondary-action compact-action"
+                  type="button"
+                  @click="addClinicalItem(draft.workup)"
+                >
+                  {{ t('builder.addItem') }}
+                </button>
+              </div>
+              <p v-if="draft.workup.length === 0" class="builder-empty compact">
+                {{ t('builder.emptyClinicalItems') }}
+              </p>
+              <div v-for="item in draft.workup" :key="item.uid" class="builder-option-row">
+                <input
+                  v-model="item.title"
+                  class="text-input"
+                  type="text"
+                  :placeholder="t('builder.itemTitle')"
+                />
+                <input
+                  v-model="item.description"
+                  class="text-input"
+                  type="text"
+                  :placeholder="t('builder.itemDescription')"
+                />
+                <button
+                  class="danger-action"
+                  type="button"
+                  @click="removeClinicalItem(draft.workup, item)"
+                >
+                  {{ t('builder.removeField') }}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="builder-card">
+            <div class="builder-card-header">
+              <div class="section-heading">
+                <h2>{{ t('builder.guidanceLibraryTitle') }}</h2>
+                <p class="section-description">{{ t('builder.guidanceLibraryDescription') }}</p>
+              </div>
+            </div>
+
+            <div class="clinical-item-editor">
+              <div class="builder-card-header compact-header">
+                <h3>{{ t('guidance.quickGuideTitle') }}</h3>
+                <button class="secondary-action compact-action" type="button" @click="addGuide">
+                  {{ t('builder.addGuide') }}
+                </button>
+              </div>
+              <p v-if="draft.quickGuides.length === 0" class="builder-empty compact">
+                {{ t('builder.emptyGuides') }}
+              </p>
+              <article v-for="guide in draft.quickGuides" :key="guide.uid" class="builder-section">
+                <div class="builder-form-grid">
+                  <label class="builder-field">
+                    <span>{{ t('builder.itemTitle') }}</span>
+                    <input v-model="guide.title" class="text-input" type="text" />
+                  </label>
+                  <label class="builder-field">
+                    <span>{{ t('builder.itemDescription') }}</span>
+                    <input v-model="guide.description" class="text-input" type="text" />
+                  </label>
+                  <label class="builder-field">
+                    <span>{{ t('guidance.criteria') }}</span>
+                    <textarea v-model="guide.criteriaText" class="text-input builder-textarea" />
+                  </label>
+                  <label class="builder-field">
+                    <span>{{ t('guidance.actions') }}</span>
+                    <textarea v-model="guide.actionsText" class="text-input builder-textarea" />
+                  </label>
+                </div>
+                <div class="builder-row-actions">
+                  <button class="danger-action" type="button" @click="removeGuide(guide)">
+                    {{ t('builder.removeField') }}
+                  </button>
+                </div>
+              </article>
+            </div>
+
+            <div class="clinical-item-editor">
+              <div class="builder-card-header compact-header">
+                <h3>{{ t('guidance.sourceFiguresTitle') }}</h3>
+                <button
+                  class="secondary-action compact-action"
+                  type="button"
+                  @click="addSourceFigure"
+                >
+                  {{ t('builder.addSourceFigure') }}
+                </button>
+              </div>
+              <p v-if="draft.sourceFigures.length === 0" class="builder-empty compact">
+                {{ t('builder.emptySourceFigures') }}
+              </p>
+              <article
+                v-for="figure in draft.sourceFigures"
+                :key="figure.uid"
+                class="builder-section"
+              >
+                <div class="builder-form-grid">
+                  <label class="builder-field">
+                    <span>{{ t('builder.itemTitle') }}</span>
+                    <input v-model="figure.title" class="text-input" type="text" />
+                  </label>
+                  <label class="builder-field">
+                    <span>{{ t('builder.sourceName') }}</span>
+                    <input v-model="figure.source" class="text-input" type="text" />
+                  </label>
+                  <label class="builder-field full-span">
+                    <span class="field-label-row">
+                      <span>{{ t('builder.sourceUrl') }}</span>
+                      <FieldHint :message="t('builder.sourceUrlHint')" />
+                    </span>
+                    <input v-model="figure.sourceUrl" class="text-input" type="url" />
+                  </label>
+                  <label class="builder-field">
+                    <span class="field-label-row">
+                      <span>{{ t('builder.imageUrl') }}</span>
+                      <FieldHint :message="t('builder.imageUrlHint')" />
+                    </span>
+                    <input v-model="figure.imageUrl" class="text-input" type="text" />
+                  </label>
+                  <label class="builder-field">
+                    <span>{{ t('builder.altText') }}</span>
+                    <input v-model="figure.altText" class="text-input" type="text" />
+                  </label>
+                  <label class="builder-field">
+                    <span>{{ t('builder.citation') }}</span>
+                    <input v-model="figure.citation" class="text-input" type="text" />
+                  </label>
+                  <label class="builder-field">
+                    <span>{{ t('builder.notes') }}</span>
+                    <input v-model="figure.notes" class="text-input" type="text" />
+                  </label>
+                </div>
+                <div class="builder-row-actions">
+                  <button class="danger-action" type="button" @click="removeSourceFigure(figure)">
+                    {{ t('builder.removeField') }}
+                  </button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="builder-card">
+            <div class="builder-card-header">
+              <div class="section-heading">
+                <h2>{{ t('builder.presetsTitle') }}</h2>
+                <p class="section-description">{{ t('builder.presetsDescription') }}</p>
+              </div>
+              <button class="secondary-action compact-action" type="button" @click="addPreset">
+                {{ t('builder.addPreset') }}
+              </button>
+            </div>
+
+            <p v-if="draft.presets.length === 0" class="builder-empty compact">
+              {{ t('builder.emptyPresets') }}
+            </p>
+
+            <article v-for="preset in draft.presets" :key="preset.uid" class="builder-section">
+              <div class="builder-form-grid">
+                <label class="builder-field">
+                  <span>{{ t('builder.presetId') }}</span>
+                  <input v-model="preset.id" class="text-input" type="text" />
+                </label>
+                <label class="builder-field">
+                  <span>{{ t('builder.itemTitle') }}</span>
+                  <input v-model="preset.title" class="text-input" type="text" />
+                </label>
+                <label class="builder-field full-span">
+                  <span>{{ t('builder.itemDescription') }}</span>
+                  <input v-model="preset.description" class="text-input" type="text" />
+                </label>
+                <label class="builder-field full-span">
+                  <span class="field-label-row">
+                    <span>{{ t('builder.presetAnswersJson') }}</span>
+                    <FieldHint :message="t('builder.presetAnswersJsonHint')" />
+                  </span>
+                  <textarea
+                    v-model="preset.answersJson"
+                    class="text-input builder-template-textarea"
+                  />
+                </label>
+              </div>
+              <div class="builder-row-actions">
+                <button class="danger-action" type="button" @click="removePreset(preset)">
+                  {{ t('builder.removeField') }}
+                </button>
+              </div>
+            </article>
+          </section>
+
+          <section class="builder-card">
+            <div class="section-heading">
               <h2>{{ t('builder.generatedNoteTitle') }}</h2>
               <p class="section-description">{{ t('builder.generatedNoteDescription') }}</p>
             </div>
 
             <label class="builder-field">
-              <span>{{ t('builder.generatedNote') }}</span>
+              <span class="field-label-row">
+                <span>{{ t('builder.generatedNote') }}</span>
+                <FieldHint :message="t('builder.generatedNoteHint')" />
+              </span>
               <textarea
                 ref="hpiTemplateInput"
                 v-model="draft.hpiTemplate"
@@ -1009,7 +1739,11 @@ const validationMessages = computed(() => {
             </div>
 
             <div class="builder-row-actions">
-              <button class="secondary-action compact-action" type="button" @click="downloadWorkflowJson">
+              <button
+                class="secondary-action compact-action"
+                type="button"
+                @click="downloadWorkflowJson"
+              >
                 {{ t('builder.exportJson') }}
               </button>
               <button class="secondary-action compact-action" type="button" @click="triggerImport">

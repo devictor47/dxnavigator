@@ -3,6 +3,7 @@ import LandingView from '@/views/public/LandingView.vue'
 import LoginView from '@/views/public/LoginView.vue'
 import RegisterView from '@/views/public/RegisterView.vue'
 import ComplaintView from '@/views/private/ComplaintView.vue'
+import WorkflowMarketplaceView from '@/views/private/WorkflowMarketplaceView.vue'
 import WorkflowBuilderView from '@/views/private/WorkflowBuilderView.vue'
 
 const router = createRouter({
@@ -36,6 +37,16 @@ const router = createRouter({
       path: '/private/builder',
       name: 'workflow-builder',
       component: WorkflowBuilderView,
+    },
+    {
+      path: '/private/builder/:moduleId',
+      name: 'workflow-builder-edit',
+      component: WorkflowBuilderView,
+    },
+    {
+      path: '/private/marketplace',
+      name: 'workflow-marketplace',
+      component: WorkflowMarketplaceView,
     },
   ],
 })
