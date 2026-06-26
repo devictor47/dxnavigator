@@ -638,7 +638,7 @@ If the frontend later moves to Cloudflare Pages or another static host, this dec
 
 Because API requests are same-origin through nginx, future auth cookies should be configured with this request path in mind.
 
-`DATABASE_ENSURE_CREATED=true` remains available during the early stage so a fresh PostgreSQL volume can boot without migrations. This should be replaced by EF Core migrations before treating the deployment as real production.
+`DATABASE_MIGRATE=true` applies EF Core migrations on backend startup so a fresh PostgreSQL volume can boot with the expected schema.
 
 ## ADR 012: Workflow Content, Language, Marketplace Identity, and Public Routing
 
@@ -869,3 +869,112 @@ The workflow view needs to track:
 - Locally persisted user preset overrides and deletions.
 
 Future backend persistence should map these actions to create, update, and delete preset operations. The frontend interaction model should remain mostly unchanged when storage moves from localStorage to the backend.
+
+## ADR 014: Workflow Persistence Uses Relational Metadata With JSONB Definitions
+
+### Status
+
+Accepted.
+
+### Context
+
+DxNavigator workflows are flexible clinical artifacts. Their full structure includes sections, fields, HPI templates, guidance, source figures, and presets. This structure is still evolving and should not be prematurely normalized into many relational tables.
+
+At the same time, marketplace and routing behavior need stable, queryable metadata such as title, description, slug, language, visibility, creator, and public identity.
+
+### Decision
+
+Workflow persistence uses a hybrid relational plus JSONB model.
+
+Marketplace/source workflows are stored in `Workflows`:
+
+```text
+id int primary key
+public_id uuid unique
+creator_user_id int
+locale_id int
+title text
+description text nullable
+slug text
+visibility text
+definition jsonb
+created_at timestamptz
+updated_at timestamptz
+deleted_at timestamptz nullable
+```
+
+Installed/user workspace workflows are stored separately in `UserWorkflows`:
+
+```text
+id int primary key
+user_id int
+source_workflow_id int nullable
+locale_id int
+title text
+description text nullable
+slug text
+definition jsonb
+created_at timestamptz
+updated_at timestamptz
+deleted_at timestamptz nullable
+```
+
+Supported languages are stored in `Locales`:
+
+```text
+id int primary key
+code text unique
+label text
+is_active boolean
+```
+
+The initial seed locales are:
+
+- `en`
+- `pt-BR`
+
+Internal IDs are database-generated integers. Public workflow IDs use UUIDs.
+
+Dates are stored as UTC-aware PostgreSQL `timestamp with time zone` values and represented in .NET as `DateTimeOffset`.
+
+### Rules
+
+- Full workflow definitions live in `jsonb`.
+- Marketplace-critical metadata is promoted to columns.
+- `creator_user_id` represents authorship/source, not ownership of installed copies.
+- User workspace workflows are copies, not live references to marketplace workflows.
+- A creator updating or deleting a public workflow must not silently change another user's installed workflow.
+- Public routing should use `public_id` plus a readable slug.
+- Soft delete uses `deleted_at`.
+- Normal application queries should ignore soft-deleted workflows.
+- Advanced JSONB querying may be added later, but common listing/search metadata should remain relational.
+
+### Indexes
+
+Initial indexes should support the first common query shapes:
+
+- unique lookup by public workflow ID
+- public marketplace listing by locale and updated date
+- creator workflow listing by creator and updated date
+- user workspace listing by user and updated date
+- source workflow lookup for installed copies
+
+Partial indexes are preferred for active-row queries:
+
+```sql
+where deleted_at is null
+```
+
+and for marketplace listing:
+
+```sql
+where visibility = 'public' and deleted_at is null
+```
+
+### Consequences
+
+The schema can list and route workflows efficiently without freezing the full workflow definition into a rigid relational model.
+
+Future marketplace filters such as tags, specialty, care setting, source quality, ratings, or install counts can be promoted into additional columns or related tables when those query patterns become real.
+
+Existing databases created with EF `EnsureCreated` may need to be reset or baselined before switching fully to migrations, because the first migration includes Identity tables as well as workflow tables.

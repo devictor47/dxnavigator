@@ -7,7 +7,7 @@ services:
 
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      Database__EnsureCreated: ${DATABASE_ENSURE_CREATED:-true}
+      Database__Migrate: ${DATABASE_MIGRATE:-true}
 
   frontend:
     build:

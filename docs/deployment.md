@@ -59,6 +59,6 @@ If a host port is already occupied, change only the local `.env` file.
 
 ## Current Database Note
 
-`DATABASE_ENSURE_CREATED=true` is currently used so the first PostgreSQL schema can be created without migrations.
+`DATABASE_MIGRATE=true` applies EF Core migrations when the backend starts.
 
-This should be replaced by EF Core migrations before treating the deployment as real production.
+For a fresh deployment, this creates the Identity tables, locale seed rows, and workflow persistence tables. Existing databases originally created with `EnsureCreated` should be reset or baselined before using migrations.

@@ -133,11 +133,11 @@ if (!app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 
-if (app.Configuration.GetValue("Database:EnsureCreated", app.Environment.IsDevelopment()))
+if (app.Configuration.GetValue("Database:Migrate", true))
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await dbContext.Database.EnsureCreatedAsync();
+    await dbContext.Database.MigrateAsync();
 }
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));

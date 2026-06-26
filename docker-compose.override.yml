@@ -6,7 +6,7 @@ services:
 
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      Database__EnsureCreated: "true"
+      Database__Migrate: "true"
 
     volumes:
       - ./backend:/workspace
