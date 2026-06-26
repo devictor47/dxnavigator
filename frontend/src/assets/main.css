@@ -924,8 +924,8 @@ p {
 }
 
 .preset-card {
-  display: flex;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--color-border);
@@ -946,9 +946,9 @@ p {
 
 .preset-button {
   display: flex;
-  flex: 1 1 auto;
   flex-direction: column;
   gap: 6px;
+  width: 100%;
   min-width: 0;
   min-height: 92px;
   padding: 14px;
@@ -964,9 +964,15 @@ p {
   line-height: 1.4;
 }
 
+.preset-button strong,
+.preset-button span {
+  overflow-wrap: anywhere;
+}
+
 .preset-card-actions {
   display: grid;
   align-content: start;
+  flex: 0 0 auto;
   gap: 6px;
   padding: 8px;
 }
@@ -1005,8 +1011,9 @@ p {
 }
 
 .field-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   gap: 16px;
 }
 
@@ -1018,7 +1025,18 @@ p {
   border: 0;
 }
 
+.field-control.boolean-field {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+.field-control.boolean-field .check-option {
+  width: max-content;
+  max-width: 100%;
+}
+
 .field-control legend {
+  margin-bottom: 8px;
   padding: 0;
   color: var(--color-text);
   font-weight: 800;
@@ -1031,7 +1049,25 @@ p {
 .field-control.text-field,
 .field-control.select-field,
 .field-control.multiselect-field {
-  grid-column: 1 / -1;
+  flex: 1 0 100%;
+}
+
+.field-control.text-field,
+.field-control.select-field {
+  padding-bottom: 2px;
+}
+
+.field-control.multiselect-field {
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 8px;
+  background: var(--color-surface-muted);
+}
+
+.field-control.multiselect-field legend {
+  padding-inline: 4px;
 }
 
 .preset-highlighted-control {
@@ -1968,8 +2004,7 @@ p {
   .field-add-row,
   .marketplace-metrics,
   .option-grid,
-  .preset-list,
-  .field-list {
+  .preset-list {
     grid-template-columns: 1fr;
   }
 
