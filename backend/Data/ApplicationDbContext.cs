@@ -72,6 +72,12 @@ public sealed class ApplicationDbContext
             entity.Property(workflow => workflow.PublicId)
                 .IsRequired();
 
+            entity.Property(workflow => workflow.IsAuthorPublic)
+                .IsRequired();
+
+            entity.Property(workflow => workflow.InstallCount)
+                .IsRequired();
+
             entity.Property(workflow => workflow.Title)
                 .HasMaxLength(240)
                 .IsRequired();
@@ -110,6 +116,11 @@ public sealed class ApplicationDbContext
                 .HasForeignKey(workflow => workflow.LocaleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(workflow => workflow.SourceUserWorkflow)
+                .WithMany()
+                .HasForeignKey(workflow => workflow.SourceUserWorkflowId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             entity.HasIndex(workflow => workflow.PublicId)
                 .IsUnique();
 
@@ -120,6 +131,8 @@ public sealed class ApplicationDbContext
             entity.HasIndex(workflow => new { workflow.CreatorUserId, workflow.UpdatedAt })
                 .HasDatabaseName("IX_Workflows_ActiveByCreator")
                 .HasFilter("\"DeletedAt\" IS NULL");
+
+            entity.HasIndex(workflow => workflow.SourceUserWorkflowId);
 
             entity.HasQueryFilter(workflow => workflow.DeletedAt == null);
         });

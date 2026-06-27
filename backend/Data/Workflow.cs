@@ -12,6 +12,14 @@ public sealed class Workflow
 
     public ApplicationUser? CreatorUser { get; set; }
 
+    public int? SourceUserWorkflowId { get; set; }
+
+    public UserWorkflow? SourceUserWorkflow { get; set; }
+
+    public bool IsAuthorPublic { get; set; }
+
+    public int InstallCount { get; set; }
+
     public int LocaleId { get; set; }
 
     public Locale? Locale { get; set; }

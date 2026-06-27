@@ -26,10 +26,10 @@ const router = createRouter({
     },
     {
       path: '/private',
-      redirect: '/private/complaints/chest-pain',
+      redirect: '/private/complaints',
     },
     {
-      path: '/private/complaints/:moduleId',
+      path: '/private/complaints/:moduleId?',
       name: 'complaint',
       component: ComplaintView,
     },

@@ -1,27 +1,64 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 import PrivateWorkspaceShell from '@/components/PrivateWorkspaceShell.vue'
+import {
+  fetchMarketplaceWorkflows,
+  installMarketplaceWorkflow,
+  type PublishedWorkflow,
+} from '@/api/userWorkflows'
 import { useI18n } from '@/composables/useI18n'
-import { bundledWorkflowEntries } from '@/data/modules'
+import { useNotifications } from '@/composables/useNotifications'
 
-const { locale, t } = useI18n()
+const { t } = useI18n()
+const { notify } = useNotifications()
+const router = useRouter()
 
-const marketplaceWorkflows = computed(() =>
-  bundledWorkflowEntries.map((entry) => {
-    const workflow = entry.workflows[locale.value]
+const marketplaceWorkflows = ref<PublishedWorkflow[]>([])
+const isLoadingMarketplace = ref(true)
+const marketplaceError = ref('')
+const installingWorkflowPublicId = ref<string | null>(null)
 
-    return {
-      id: entry.localKey,
-      title: workflow.title,
-      description: workflow.description || workflow.overview,
-      language: workflow.language,
-      sections: workflow.sections.length,
-      fields: workflow.sections.reduce((count, section) => count + section.fields.length, 0),
-      redFlags: workflow.redFlags.length,
-    }
-  }),
-)
+const loadMarketplaceWorkflows = async (): Promise<void> => {
+  isLoadingMarketplace.value = true
+  marketplaceError.value = ''
+
+  try {
+    marketplaceWorkflows.value = await fetchMarketplaceWorkflows()
+  } catch {
+    marketplaceError.value = t('marketplace.loadFailed')
+  } finally {
+    isLoadingMarketplace.value = false
+  }
+}
+
+onMounted(() => {
+  void loadMarketplaceWorkflows()
+})
+
+const installWorkflow = async (workflow: PublishedWorkflow): Promise<void> => {
+  installingWorkflowPublicId.value = workflow.publicId
+
+  try {
+    const installedWorkflow = await installMarketplaceWorkflow(workflow.publicId)
+
+    notify({
+      type: 'message',
+      title: t('marketplace.installSuccessTitle'),
+      message: t('marketplace.installSuccessMessage'),
+    })
+    await router.push(`/private/complaints/${installedWorkflow.id}`)
+  } catch {
+    notify({
+      type: 'error',
+      title: t('marketplace.installFailedTitle'),
+      message: t('marketplace.installFailedMessage'),
+    })
+  } finally {
+    installingWorkflowPublicId.value = null
+  }
+}
 </script>
 
 <template>
@@ -58,10 +95,18 @@ const marketplaceWorkflows = computed(() =>
         </label>
       </section>
 
-      <section class="marketplace-grid" aria-label="Available workflows">
+      <section v-if="isLoadingMarketplace" class="form-card workspace-state-card">
+        <p>{{ t('marketplace.loading') }}</p>
+      </section>
+
+      <section v-else-if="marketplaceError" class="form-card workspace-state-card">
+        <p>{{ marketplaceError }}</p>
+      </section>
+
+      <section v-else class="marketplace-grid" aria-label="Available workflows">
         <article
           v-for="workflow in marketplaceWorkflows"
-          :key="workflow.id"
+          :key="workflow.publicId"
           class="marketplace-card"
         >
           <div class="marketplace-card-header">
@@ -73,36 +118,48 @@ const marketplaceWorkflows = computed(() =>
           </div>
 
           <p>{{ workflow.description }}</p>
+          <p class="section-description">
+            {{
+              workflow.authorName
+                ? `${t('marketplace.author')}: ${workflow.authorName}`
+                : t('marketplace.anonymousAuthor')
+            }}
+          </p>
 
           <div class="marketplace-metrics">
             <span>
-              <strong>{{ workflow.sections }}</strong>
-              {{ t('marketplace.sections') }}
+              <strong>{{ workflow.slug }}</strong>
+              {{ t('marketplace.slug') }}
             </span>
             <span>
-              <strong>{{ workflow.fields }}</strong>
-              {{ t('marketplace.fields') }}
+              <strong>{{ workflow.publicId.slice(0, 8) }}</strong>
+              {{ t('marketplace.publicId') }}
             </span>
             <span>
-              <strong>{{ workflow.redFlags }}</strong>
-              {{ t('marketplace.redFlags') }}
+              <strong>{{ workflow.installCount }}</strong>
+              {{ t('marketplace.installs') }}
             </span>
           </div>
 
           <div class="builder-row-actions">
-            <RouterLink
-              class="secondary-action compact-action"
-              :to="`/private/builder/${workflow.id}`"
-            >
-              {{ t('builder.editWorkflow') }}
-            </RouterLink>
-            <RouterLink
+            <span class="field-type-chip">{{ t('marketplace.publishedBadge') }}</span>
+            <button
               class="primary-action compact-action"
-              :to="`/private/complaints/${workflow.id}`"
+              type="button"
+              :disabled="installingWorkflowPublicId === workflow.publicId"
+              @click="installWorkflow(workflow)"
             >
-              {{ t('marketplace.openWorkflow') }}
-            </RouterLink>
+              {{
+                installingWorkflowPublicId === workflow.publicId
+                  ? t('marketplace.installing')
+                  : t('marketplace.installWorkflow')
+              }}
+            </button>
           </div>
+        </article>
+
+        <article v-if="marketplaceWorkflows.length === 0" class="marketplace-card">
+          <p>{{ t('marketplace.empty') }}</p>
         </article>
       </section>
     </section>

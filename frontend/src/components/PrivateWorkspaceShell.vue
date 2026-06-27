@@ -10,26 +10,28 @@ import {
   User,
   Wrench,
 } from '@lucide/vue'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import AppPreferences from '@/components/AppPreferences.vue'
 import ComplaintSelector from '@/components/ComplaintSelector.vue'
+import { fetchUserWorkflows, type UserWorkflowSummary } from '@/api/userWorkflows'
 import { useI18n } from '@/composables/useI18n'
-import { bundledWorkflowEntries } from '@/data/modules'
 
 const props = defineProps<{
   activeSection: 'workspace' | 'builder' | 'marketplace'
   selectedWorkflowId?: string
 }>()
 
-const { locale, t } = useI18n()
+const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const isSidebarCollapsed = ref(
   typeof window !== 'undefined' ? window.matchMedia('(max-width: 860px)').matches : false,
 )
 const isAccountMenuOpen = ref(false)
 const accountElement = ref<HTMLElement | null>(null)
+const userWorkflows = ref<UserWorkflowSummary[]>([])
 const currentUser = ref<{
   id: number
   name: string
@@ -37,11 +39,11 @@ const currentUser = ref<{
 } | null>(null)
 
 const workflowLinks = computed(() =>
-  bundledWorkflowEntries.map((entry) => ({
-    id: entry.localKey,
-    name: entry.workflows[locale.value].title,
-    to: `/private/complaints/${entry.localKey}`,
-    icon: entry.icon,
+  userWorkflows.value.map((workflow) => ({
+    id: String(workflow.id),
+    name: workflow.title,
+    to: `/private/complaints/${workflow.id}`,
+    icon: workflow.slug,
   })),
 )
 
@@ -58,6 +60,10 @@ const loadCurrentUser = async (): Promise<void> => {
   }
 
   currentUser.value = await response.json()
+}
+
+const loadUserWorkflows = async (): Promise<void> => {
+  userWorkflows.value = await fetchUserWorkflows().catch(() => [])
 }
 
 const logout = async (): Promise<void> => {
@@ -103,9 +109,17 @@ const handleDocumentKeydown = (event: KeyboardEvent): void => {
 
 onMounted(() => {
   void loadCurrentUser()
+  void loadUserWorkflows()
   document.addEventListener('click', handleDocumentClick)
   document.addEventListener('keydown', handleDocumentKeydown)
 })
+
+watch(
+  () => route.fullPath,
+  () => {
+    void loadUserWorkflows()
+  },
+)
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleDocumentClick)
@@ -157,7 +171,7 @@ onBeforeUnmount(() => {
           <RouterLink
             class="complaint-option"
             :class="{ selected: activeSection === 'workspace' }"
-            to="/private/complaints/chest-pain"
+            to="/private/complaints"
             :title="t('builder.nav.workspace')"
           >
             <ClipboardList class="nav-icon" :size="18" aria-hidden="true" />

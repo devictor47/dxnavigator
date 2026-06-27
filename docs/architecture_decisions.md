@@ -978,3 +978,67 @@ The schema can list and route workflows efficiently without freezing the full wo
 Future marketplace filters such as tags, specialty, care setting, source quality, ratings, or install counts can be promoted into additional columns or related tables when those query patterns become real.
 
 Existing databases created with EF `EnsureCreated` may need to be reset or baselined before switching fully to migrations, because the first migration includes Identity tables as well as workflow tables.
+
+## ADR 015: Published Workflows Are Independent Snapshots
+
+### Status
+
+Accepted.
+
+### Context
+
+DxNavigator stores private workspace workflows separately from marketplace workflows:
+
+- `UserWorkflows` are private editable copies in a user's library.
+- `Workflows` are marketplace/public workflow records.
+
+When a user publishes a workflow, the marketplace version must remain stable even if the user later edits or removes their private copy. At the same time, preserving a source link while the private copy exists enables future product behavior such as "publish update" or "your draft is newer than the marketplace version."
+
+The project considered linking from `UserWorkflows` to `Workflows` with `SourceWorkflowId`, but that makes the private copy aware of publication state and complicates deletion semantics.
+
+### Decision
+
+Publishing copies a `UserWorkflow` into `Workflows` as an independent JSONB snapshot.
+
+`Workflows` may keep an optional source pointer:
+
+```text
+Workflows.SourceUserWorkflowId -> UserWorkflows.Id nullable
+```
+
+This source pointer is an update lineage hint, not a dependency required for marketplace rendering.
+
+When a user removes a workflow from their private library, the app hard deletes the `UserWorkflow`. Any published `Workflow` rows pointing to that private record have their `SourceUserWorkflowId` set to `null`.
+
+The marketplace workflow remains available because it owns its own metadata and `definition` snapshot.
+
+### Rules
+
+- `UserWorkflow` is a private editable working copy.
+- `Workflow` is a public or marketplace snapshot.
+- Publishing copies all required marketplace data into `Workflow`.
+- Marketplace rendering must not require the source `UserWorkflow`.
+- `Workflow.SourceUserWorkflowId` is nullable and uses `ON DELETE SET NULL`.
+- Removing from a user's library hard deletes the `UserWorkflow`.
+- Deleting a private copy must not delete or mutate the published snapshot except for unlinking `SourceUserWorkflowId`.
+- Author display is controlled by `Workflow.IsAuthorPublic`; creator identity may remain internal for audit/moderation.
+
+### Rationale
+
+Storage is cheaper than lifecycle complexity. Keeping a full snapshot avoids rebuilding public workflows from private records and prevents public content from disappearing when an author cleans their library.
+
+The nullable source pointer keeps future update workflows possible while avoiding a hard dependency on private data.
+
+### Consequences
+
+The earlier `UserWorkflows.SourceWorkflowId` relationship should be removed or ignored.
+
+Future publish-update behavior can locate a marketplace workflow through `Workflow.SourceUserWorkflowId` while the source still exists. If the source was deleted, the marketplace workflow becomes an independent published snapshot and cannot be automatically updated from that private copy.
+
+Marketplace installs may use a separate source pointer in the other direction:
+
+```text
+UserWorkflows.SourceWorkflowId -> Workflows.Id nullable
+```
+
+This means "this private copy was installed from that marketplace snapshot." It is not used to keep marketplace workflows alive and it is not the publication lifecycle link.

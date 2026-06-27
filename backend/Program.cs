@@ -142,5 +142,7 @@ if (app.Configuration.GetValue("Database:Migrate", true))
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
 app.MapAuthEndpoints();
+app.MapUserWorkflowEndpoints();
+app.MapMarketplaceWorkflowEndpoints();
 
 app.Run();

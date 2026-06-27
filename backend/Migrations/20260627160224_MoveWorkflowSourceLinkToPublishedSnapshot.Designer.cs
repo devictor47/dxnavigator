@@ -4,6 +4,7 @@ using System.Text.Json;
 using DxNavigator.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DxNavigator.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260627160224_MoveWorkflowSourceLinkToPublishedSnapshot")]
+    partial class MoveWorkflowSourceLinkToPublishedSnapshot
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -176,9 +179,6 @@ namespace DxNavigator.Api.Migrations
                         .HasMaxLength(240)
                         .HasColumnType("character varying(240)");
 
-                    b.Property<int?>("SourceWorkflowId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(240)
@@ -193,8 +193,6 @@ namespace DxNavigator.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LocaleId");
-
-                    b.HasIndex("SourceWorkflowId");
 
                     b.HasIndex("UserId", "UpdatedAt")
                         .HasDatabaseName("IX_UserWorkflows_ActiveByUser")
@@ -227,9 +225,6 @@ namespace DxNavigator.Api.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("InstallCount")
-                        .HasColumnType("integer");
 
                     b.Property<bool>("IsAuthorPublic")
                         .HasColumnType("boolean");
@@ -419,11 +414,6 @@ namespace DxNavigator.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("DxNavigator.Api.Data.Workflow", "SourceWorkflow")
-                        .WithMany()
-                        .HasForeignKey("SourceWorkflowId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("DxNavigator.Api.Data.ApplicationUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
@@ -431,8 +421,6 @@ namespace DxNavigator.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Locale");
-
-                    b.Navigation("SourceWorkflow");
 
                     b.Navigation("User");
                 });

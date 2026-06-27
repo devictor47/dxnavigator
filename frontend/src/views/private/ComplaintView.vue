@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import ClinicalGuidanceLibrary from '@/components/ClinicalGuidanceLibrary.vue'
 import DifferentialList from '@/components/DifferentialList.vue'
@@ -10,18 +10,29 @@ import PrivateWorkspaceShell from '@/components/PrivateWorkspaceShell.vue'
 import RedFlagList from '@/components/RedFlagList.vue'
 import WorkflowPresetSelector from '@/components/WorkflowPresetSelector.vue'
 import WorkupList from '@/components/WorkupList.vue'
+import {
+  deleteUserWorkflow,
+  fetchUserWorkflow,
+  fetchUserWorkflows,
+  type PublishedWorkflow,
+  publishUserWorkflow,
+  updatePublishedWorkflow,
+} from '@/api/userWorkflows'
 import { useI18n } from '@/composables/useI18n'
-import { getClinicalModuleById } from '@/data/modules'
+import { useNotifications } from '@/composables/useNotifications'
 import {
   createWorkflowSession,
   type ClinicalWorkflow,
   type ModuleAnswers,
   type ModuleAnswerValue,
+  type WorkflowSession,
   type WorkflowPreset,
 } from '@/data/workflow'
 
 const { locale, t } = useI18n()
+const { notify } = useNotifications()
 const route = useRoute()
+const router = useRouter()
 const presetConfirmationStorageKey = 'dxnavigator-skip-preset-confirmation'
 
 type PersistedPresetState = {
@@ -36,12 +47,26 @@ type PresetFormState = {
   description: string
 }
 
-const selectedModule = computed(() => getClinicalModuleById(route.params.moduleId, locale.value))
+const selectedWorkflowId = computed(() => {
+  const moduleId = route.params.moduleId
+
+  return Array.isArray(moduleId) ? (moduleId[0] ?? '') : (moduleId ?? '')
+})
+
+const selectedModule = ref<ClinicalWorkflow | null>(null)
+const selectedPublishedWorkflow = ref<PublishedWorkflow | null>(null)
 const isPreviewSticky = ref(false)
-const session = ref(createWorkflowSession(selectedModule.value))
+const session = ref<WorkflowSession | null>(null)
+const isLoadingWorkflow = ref(true)
+const workflowLoadError = ref('')
 const pendingPreset = ref<WorkflowPreset | null>(null)
 const pendingPresetDelete = ref<WorkflowPreset | null>(null)
 const pendingSaveDecisionPreset = ref<WorkflowPreset | null>(null)
+const isPublishConfirmationOpen = ref(false)
+const isPublishingWorkflow = ref(false)
+const publishWithAuthorName = ref(false)
+const isRemoveWorkflowConfirmationOpen = ref(false)
+const isRemovingWorkflow = ref(false)
 const presetForm = ref<PresetFormState | null>(null)
 const activePresetId = ref<string>()
 const activePresetBaselineAnswers = ref<ModuleAnswers | null>(null)
@@ -57,9 +82,11 @@ const localPresetState = ref<PersistedPresetState>({
 let hpiDebounceId: number | undefined
 let hasGeneratedInitialHpi = false
 
-const presetStorageKey = computed(
-  () => `dxnavigator-presets:${selectedModule.value.id}:${locale.value}`,
-)
+const presetStorageKey = computed(() => {
+  const workflowId = selectedWorkflowId.value || 'none'
+
+  return `dxnavigator-presets:user-workflow:${workflowId}:${locale.value}`
+})
 
 const cloneAnswers = (answers: ModuleAnswers): ModuleAnswers =>
   Object.fromEntries(
@@ -145,14 +172,14 @@ const saveLocalPresetState = (): void => {
   window.localStorage.setItem(presetStorageKey.value, JSON.stringify(localPresetState.value))
 }
 
-const bundledPresetIds = computed(() =>
-  new Set((selectedModule.value.presets ?? []).map((preset) => preset.id)),
+const bundledPresetIds = computed(
+  () => new Set((selectedModule.value?.presets ?? []).map((preset) => preset.id)),
 )
 
 const mergedPresets = computed<WorkflowPreset[]>(() => {
   const deletedPresetIds = new Set(localPresetState.value.deletedPresetIds)
   const localPresetById = new Map(localPresetState.value.presets.map((preset) => [preset.id, preset]))
-  const bundledPresets = selectedModule.value.presets ?? []
+  const bundledPresets = selectedModule.value?.presets ?? []
   const visibleBundledPresets = bundledPresets
     .filter((preset) => !deletedPresetIds.has(preset.id))
     .map((preset) => localPresetById.get(preset.id) ?? preset)
@@ -171,6 +198,7 @@ const hasUnsavedPresetChanges = computed(() => {
   return Boolean(
     activePresetId.value &&
       activePresetBaselineAnswers.value &&
+      session.value &&
       !areAnswersEqual(session.value.answers, activePresetBaselineAnswers.value),
   )
 })
@@ -184,7 +212,7 @@ const shouldSkipPresetConfirmation = (): boolean => {
 }
 
 const refreshGeneratedHpi = (): void => {
-  generatedHpi.value = session.value.generateHpi(locale.value)
+  generatedHpi.value = session.value?.generateHpi(locale.value) ?? ''
   hasGeneratedInitialHpi = true
 }
 
@@ -204,8 +232,7 @@ const scheduleGeneratedHpiRefresh = (): void => {
   }, 120)
 }
 
-watch(selectedModule, (workflow: ClinicalWorkflow) => {
-  session.value = createWorkflowSession(workflow)
+const resetWorkflowState = (): void => {
   pendingPreset.value = null
   pendingPresetDelete.value = null
   pendingSaveDecisionPreset.value = null
@@ -213,10 +240,72 @@ watch(selectedModule, (workflow: ClinicalWorkflow) => {
   activePresetId.value = undefined
   activePresetBaselineAnswers.value = null
   highlightedPresetAnswers.value = {}
-  loadLocalPresetState()
-})
+  localPresetState.value = {
+    presets: [],
+    deletedPresetIds: [],
+  }
+  hasGeneratedInitialHpi = false
+}
 
-watch(() => [session.value.answers, locale.value], scheduleGeneratedHpiRefresh, {
+const getRouteWorkflowId = (): number | null => {
+  const workflowId = Number(selectedWorkflowId.value)
+
+  return Number.isInteger(workflowId) && workflowId > 0 ? workflowId : null
+}
+
+const loadWorkflowFromRoute = async (): Promise<void> => {
+  isLoadingWorkflow.value = true
+  workflowLoadError.value = ''
+
+  try {
+    let workflowId = getRouteWorkflowId()
+
+    if (!workflowId) {
+      const workflows = await fetchUserWorkflows()
+      const firstWorkflow = workflows[0]
+
+      if (!firstWorkflow) {
+        selectedModule.value = null
+        selectedPublishedWorkflow.value = null
+        session.value = null
+        generatedHpi.value = ''
+        resetWorkflowState()
+        return
+      }
+
+      await router.replace(`/private/complaints/${firstWorkflow.id}`)
+      workflowId = firstWorkflow.id
+    }
+
+    const savedWorkflow = await fetchUserWorkflow(workflowId)
+
+    selectedModule.value = savedWorkflow.definition
+    selectedPublishedWorkflow.value = savedWorkflow.publishedWorkflow ?? null
+    session.value = createWorkflowSession(savedWorkflow.definition)
+    resetWorkflowState()
+    loadLocalPresetState()
+    refreshGeneratedHpi()
+  } catch {
+    selectedModule.value = null
+    selectedPublishedWorkflow.value = null
+    session.value = null
+    generatedHpi.value = ''
+    resetWorkflowState()
+    workflowLoadError.value = t('workspace.loadFailed')
+  } finally {
+    isLoadingWorkflow.value = false
+  }
+}
+
+watch(
+  () => route.params.moduleId,
+  () => {
+    void loadWorkflowFromRoute()
+  },
+  { immediate: true },
+)
+
+watch(() => [session.value?.answers, locale.value], scheduleGeneratedHpiRefresh, {
   deep: true,
   immediate: true,
 })
@@ -238,6 +327,10 @@ const shouldHighlightPresetValue = (value: ModuleAnswerValue): boolean => {
 }
 
 const applyPreset = (preset: WorkflowPreset): void => {
+  if (!selectedModule.value) {
+    return
+  }
+
   const nextSession = createWorkflowSession(selectedModule.value)
 
   for (const [fieldKey, value] of Object.entries(preset.answers)) {
@@ -299,7 +392,7 @@ const createPresetFromCurrentAnswers = (title: string, description: string): Wor
   id: createPresetId(title),
   title,
   ...(description.trim() ? { description: description.trim() } : {}),
-  answers: cloneAnswers(session.value.answers),
+  answers: cloneAnswers(session.value?.answers ?? {}),
 })
 
 const openCreatePresetForm = (): void => {
@@ -382,7 +475,7 @@ const replaceActivePreset = (): void => {
 
   const nextPreset: WorkflowPreset = {
     ...pendingSaveDecisionPreset.value,
-    answers: cloneAnswers(session.value.answers),
+    answers: cloneAnswers(session.value?.answers ?? {}),
   }
 
   upsertLocalPreset(nextPreset)
@@ -436,6 +529,124 @@ const confirmDeletePreset = (): void => {
   pendingPresetDelete.value = null
 }
 
+const requestPublishWorkflow = (): void => {
+  if (!getRouteWorkflowId()) {
+    notify({
+      type: 'warn',
+      title: t('builder.publishNeedsSaveTitle'),
+      message: t('builder.publishNeedsSaveMessage'),
+    })
+    return
+  }
+
+  publishWithAuthorName.value = false
+  isPublishConfirmationOpen.value = true
+}
+
+const cancelPublishWorkflow = (): void => {
+  isPublishConfirmationOpen.value = false
+  publishWithAuthorName.value = false
+}
+
+const confirmPublishWorkflow = async (): Promise<void> => {
+  const workflowId = getRouteWorkflowId()
+
+  if (!workflowId) {
+    return
+  }
+
+  isPublishingWorkflow.value = true
+
+  try {
+    await publishUserWorkflow(workflowId, publishWithAuthorName.value)
+    const savedWorkflow = await fetchUserWorkflow(workflowId)
+    selectedPublishedWorkflow.value = savedWorkflow.publishedWorkflow ?? null
+    isPublishConfirmationOpen.value = false
+    publishWithAuthorName.value = false
+    notify({
+      type: 'message',
+      title: t('builder.publishSuccessTitle'),
+      message: t('builder.publishSuccessMessage'),
+    })
+  } catch {
+    notify({
+      type: 'error',
+      title: t('builder.publishFailedTitle'),
+      message: t('builder.publishFailedMessage'),
+    })
+  } finally {
+    isPublishingWorkflow.value = false
+  }
+}
+
+const updatePublishedFromCurrentWorkflow = async (): Promise<void> => {
+  const workflowId = getRouteWorkflowId()
+
+  if (!workflowId) {
+    return
+  }
+
+  isPublishingWorkflow.value = true
+
+  try {
+    selectedPublishedWorkflow.value = await updatePublishedWorkflow(workflowId)
+    notify({
+      type: 'message',
+      title: t('builder.publishUpdateSuccessTitle'),
+      message: t('builder.publishUpdateSuccessMessage'),
+    })
+  } catch {
+    notify({
+      type: 'error',
+      title: t('builder.publishUpdateFailedTitle'),
+      message: t('builder.publishUpdateFailedMessage'),
+    })
+  } finally {
+    isPublishingWorkflow.value = false
+  }
+}
+
+const requestRemoveWorkflow = (): void => {
+  if (!getRouteWorkflowId()) {
+    return
+  }
+
+  isRemoveWorkflowConfirmationOpen.value = true
+}
+
+const cancelRemoveWorkflow = (): void => {
+  isRemoveWorkflowConfirmationOpen.value = false
+}
+
+const confirmRemoveWorkflow = async (): Promise<void> => {
+  const workflowId = getRouteWorkflowId()
+
+  if (!workflowId) {
+    return
+  }
+
+  isRemovingWorkflow.value = true
+
+  try {
+    await deleteUserWorkflow(workflowId)
+    isRemoveWorkflowConfirmationOpen.value = false
+    notify({
+      type: 'message',
+      title: t('workspace.removeSuccessTitle'),
+      message: t('workspace.removeSuccessMessage'),
+    })
+    await router.push('/private/complaints')
+  } catch {
+    notify({
+      type: 'error',
+      title: t('workspace.removeFailedTitle'),
+      message: t('workspace.removeFailedMessage'),
+    })
+  } finally {
+    isRemovingWorkflow.value = false
+  }
+}
+
 const closeSummary = (): void => {
   isSummaryOpen.value = false
 }
@@ -459,7 +670,6 @@ const handleDocumentKeydown = (event: KeyboardEvent): void => {
 }
 
 onMounted(() => {
-  loadLocalPresetState()
   document.addEventListener('click', handleDocumentClick)
   document.addEventListener('keydown', handleDocumentKeydown)
 })
@@ -475,71 +685,123 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <PrivateWorkspaceShell active-section="workspace" :selected-workflow-id="selectedModule.id">
+  <PrivateWorkspaceShell active-section="workspace" :selected-workflow-id="selectedWorkflowId">
     <section class="workspace-content">
-      <header class="complaint-header">
+      <section v-if="isLoadingWorkflow" class="form-card workspace-state-card">
         <p class="eyebrow">{{ t('workspace.eyebrow') }}</p>
-        <h1>{{ selectedModule.title }}</h1>
-        <p>{{ selectedModule.overview }}</p>
-        <RouterLink
-          class="secondary-action compact-action"
-          :to="`/private/builder/${route.params.moduleId}`"
-        >
-          {{ t('builder.editWorkflow') }}
+        <h1>{{ t('workspace.loading') }}</h1>
+      </section>
+
+      <section v-else-if="workflowLoadError" class="form-card workspace-state-card">
+        <p class="eyebrow">{{ t('workspace.eyebrow') }}</p>
+        <h1>{{ t('workspace.loadFailed') }}</h1>
+        <p>{{ workflowLoadError }}</p>
+      </section>
+
+      <section v-else-if="!selectedModule || !session" class="form-card workspace-state-card">
+        <p class="eyebrow">{{ t('workspace.eyebrow') }}</p>
+        <h1>{{ t('workspace.emptyTitle') }}</h1>
+        <p>{{ t('workspace.emptyDescription') }}</p>
+        <RouterLink class="primary-action compact-action" to="/private/builder">
+          {{ t('builder.nav.builder') }}
         </RouterLink>
-        <button class="danger-action compact-action" type="button" disabled>
-          {{ t('marketplace.removeWorkflow') }}
-        </button>
-      </header>
+      </section>
 
-      <div class="clinical-workbench">
-        <HpiPreview
-          :narrative="generatedHpi"
-          :sticky="isPreviewSticky"
-          @toggle-sticky="isPreviewSticky = !isPreviewSticky"
-        />
-
-        <section class="form-card" aria-labelledby="form-card-title">
-          <div class="form-card-header">
-            <div>
-              <p class="eyebrow">{{ t('workspace.formEyebrow') }}</p>
-              <h2 id="form-card-title">{{ t('workspace.formTitle') }}</h2>
-            </div>
+      <template v-else>
+        <header class="complaint-header">
+          <p class="eyebrow">{{ t('workspace.eyebrow') }}</p>
+          <h1>{{ selectedModule.title }}</h1>
+          <p>{{ selectedModule.overview }}</p>
+          <div class="builder-row-actions">
+            <RouterLink
+              class="secondary-action compact-action"
+              :to="`/private/builder/${selectedWorkflowId}`"
+            >
+              {{ t('builder.editWorkflow') }}
+            </RouterLink>
+            <button
+              v-if="selectedPublishedWorkflow"
+              class="secondary-action compact-action"
+              type="button"
+              :disabled="isPublishingWorkflow"
+              @click="updatePublishedFromCurrentWorkflow"
+            >
+              {{
+                isPublishingWorkflow
+                  ? t('builder.publishing')
+                  : t('builder.updatePublishedWorkflow')
+              }}
+            </button>
+            <button
+              v-else
+              class="secondary-action compact-action"
+              type="button"
+              :disabled="isPublishingWorkflow"
+              @click="requestPublishWorkflow"
+            >
+              {{ isPublishingWorkflow ? t('builder.publishing') : t('builder.publishWorkflow') }}
+            </button>
+            <button
+              class="danger-action compact-action"
+              type="button"
+              :disabled="isRemovingWorkflow"
+              @click="requestRemoveWorkflow"
+            >
+              {{ t('marketplace.removeWorkflow') }}
+            </button>
           </div>
+        </header>
 
-          <div class="form-card-scroll">
-            <WorkflowPresetSelector
-              :presets="mergedPresets"
-              :active-preset-id="activePresetId"
-              :has-unsaved-preset-changes="hasUnsavedPresetChanges"
-              @apply="requestPreset"
-              @save="requestSavePreset"
-              @edit="openEditPresetForm"
-              @remove="requestDeletePreset"
-            />
+        <div class="clinical-workbench">
+          <HpiPreview
+            :narrative="generatedHpi"
+            :sticky="isPreviewSticky"
+            @toggle-sticky="isPreviewSticky = !isPreviewSticky"
+          />
 
-            <DynamicClinicalForm
-              :session="session"
-              :highlighted-answers="highlightedPresetAnswers"
-            />
-
-            <div id="clinical-guidance" class="workflow-grid guidance-grid">
-              <RedFlagList :red-flags="selectedModule.redFlags" />
-              <DifferentialList :differentials="selectedModule.differentials" />
-              <WorkupList :workup="selectedModule.workup" />
+          <section class="form-card" aria-labelledby="form-card-title">
+            <div class="form-card-header">
+              <div>
+                <p class="eyebrow">{{ t('workspace.formEyebrow') }}</p>
+                <h2 id="form-card-title">{{ t('workspace.formTitle') }}</h2>
+              </div>
             </div>
 
-            <ClinicalGuidanceLibrary
-              id="guidance-library"
-              :quick-guides="selectedModule.quickGuides"
-              :source-figures="selectedModule.sourceFigures"
-            />
-          </div>
-        </section>
-      </div>
+            <div class="form-card-scroll">
+              <WorkflowPresetSelector
+                :presets="mergedPresets"
+                :active-preset-id="activePresetId"
+                :has-unsaved-preset-changes="hasUnsavedPresetChanges"
+                @apply="requestPreset"
+                @save="requestSavePreset"
+                @edit="openEditPresetForm"
+                @remove="requestDeletePreset"
+              />
+
+              <DynamicClinicalForm
+                :session="session"
+                :highlighted-answers="highlightedPresetAnswers"
+              />
+
+              <div id="clinical-guidance" class="workflow-grid guidance-grid">
+                <RedFlagList :red-flags="selectedModule.redFlags" />
+                <DifferentialList :differentials="selectedModule.differentials" />
+                <WorkupList :workup="selectedModule.workup" />
+              </div>
+
+              <ClinicalGuidanceLibrary
+                id="guidance-library"
+                :quick-guides="selectedModule.quickGuides"
+                :source-figures="selectedModule.sourceFigures"
+              />
+            </div>
+          </section>
+        </div>
+      </template>
     </section>
 
     <nav
+      v-if="selectedModule"
       ref="summaryElement"
       class="page-summary"
       :class="{ open: isSummaryOpen }"
@@ -724,6 +986,103 @@ onBeforeUnmount(() => {
           </button>
           <button class="danger-action compact-action" type="button" @click="confirmDeletePreset">
             {{ t('common.remove') }}
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div
+      v-if="isPublishConfirmationOpen && selectedModule"
+      class="modal-backdrop"
+      role="presentation"
+      @click="cancelPublishWorkflow"
+    >
+      <section
+        class="confirmation-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="publish-workflow-title"
+        @click.stop
+      >
+        <div class="section-heading">
+          <p class="eyebrow">{{ t('builder.publishEyebrow') }}</p>
+          <h2 id="publish-workflow-title">{{ t('builder.publishTitle') }}</h2>
+          <p class="section-description">{{ t('builder.publishDescription') }}</p>
+        </div>
+
+        <div class="preset-confirmation-target">
+          <strong>{{ selectedModule.title }}</strong>
+          <span>{{ t('builder.publishWarning') }}</span>
+        </div>
+
+        <label class="check-option single-check">
+          <input v-model="publishWithAuthorName" type="checkbox" />
+          <span>{{ t('builder.publishWithAuthorName') }}</span>
+        </label>
+
+        <p class="section-description">{{ t('builder.publishAnonymousDefault') }}</p>
+
+        <div class="dialog-actions">
+          <button
+            class="secondary-action compact-action"
+            type="button"
+            :disabled="isPublishingWorkflow"
+            @click="cancelPublishWorkflow"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            class="primary-action compact-action"
+            type="button"
+            :disabled="isPublishingWorkflow"
+            @click="confirmPublishWorkflow"
+          >
+            {{ isPublishingWorkflow ? t('builder.publishing') : t('builder.confirmPublish') }}
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <div
+      v-if="isRemoveWorkflowConfirmationOpen && selectedModule"
+      class="modal-backdrop"
+      role="presentation"
+      @click="cancelRemoveWorkflow"
+    >
+      <section
+        class="confirmation-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="remove-workflow-title"
+        @click.stop
+      >
+        <div class="section-heading">
+          <p class="eyebrow">{{ t('workspace.removeEyebrow') }}</p>
+          <h2 id="remove-workflow-title">{{ t('workspace.removeTitle') }}</h2>
+          <p class="section-description">{{ t('workspace.removeDescription') }}</p>
+        </div>
+
+        <div class="preset-confirmation-target">
+          <strong>{{ selectedModule.title }}</strong>
+          <span>{{ t('workspace.removeWarning') }}</span>
+        </div>
+
+        <div class="dialog-actions">
+          <button
+            class="secondary-action compact-action"
+            type="button"
+            :disabled="isRemovingWorkflow"
+            @click="cancelRemoveWorkflow"
+          >
+            {{ t('common.cancel') }}
+          </button>
+          <button
+            class="danger-action compact-action"
+            type="button"
+            :disabled="isRemovingWorkflow"
+            @click="confirmRemoveWorkflow"
+          >
+            {{ isRemovingWorkflow ? t('workspace.removing') : t('common.remove') }}
           </button>
         </div>
       </section>

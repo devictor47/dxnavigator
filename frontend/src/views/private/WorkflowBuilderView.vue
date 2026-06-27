@@ -10,9 +10,9 @@ import HpiPreview from '@/components/HpiPreview.vue'
 import PrivateWorkspaceShell from '@/components/PrivateWorkspaceShell.vue'
 import RedFlagList from '@/components/RedFlagList.vue'
 import WorkupList from '@/components/WorkupList.vue'
+import { fetchUserWorkflow, saveUserWorkflow } from '@/api/userWorkflows'
 import { useI18n } from '@/composables/useI18n'
 import { useNotifications } from '@/composables/useNotifications'
-import { getClinicalModuleById } from '@/data/modules'
 import {
   createWorkflowSession,
   type ClinicalWorkflow,
@@ -160,6 +160,8 @@ const importFileInput = ref<HTMLInputElement | null>(null)
 const hpiTemplateInput = ref<HTMLTextAreaElement | null>(null)
 const importError = ref('')
 const activeBuilderMode = ref<BuilderMode>('edit')
+const isSavingWorkflow = ref(false)
+const savedWorkflowId = ref<number | null>(null)
 
 const fieldTypes: BuilderFieldType[] = ['text', 'boolean', 'select', 'multiselect']
 let nextDraftUid = 1
@@ -677,14 +679,34 @@ const editWorkflowId = computed(() => {
 })
 
 watch(
-  [editWorkflowId, appLocale],
-  ([moduleId, locale]) => {
+  editWorkflowId,
+  async (moduleId) => {
     if (!moduleId) {
+      savedWorkflowId.value = null
       return
     }
 
-    importWorkflow(getClinicalModuleById(moduleId, locale))
-    draft.slug = draft.slug || slugify(draft.title)
+    const workflowId = Number(moduleId)
+
+    if (!Number.isInteger(workflowId) || workflowId <= 0) {
+      savedWorkflowId.value = null
+      return
+    }
+
+    try {
+      const savedWorkflow = await fetchUserWorkflow(workflowId)
+
+      savedWorkflowId.value = savedWorkflow.id
+      importWorkflow(savedWorkflow.definition)
+      draft.slug = draft.slug || slugify(draft.title)
+    } catch {
+      savedWorkflowId.value = null
+      notify({
+        type: 'error',
+        title: t('builder.loadFailedTitle'),
+        message: t('builder.loadFailedMessage'),
+      })
+    }
   },
   { immediate: true },
 )
@@ -699,6 +721,49 @@ const downloadWorkflowJson = (): void => {
   link.download = `${draft.id || 'workflow'}.json`
   link.click()
   URL.revokeObjectURL(url)
+}
+
+const saveWorkflow = async (): Promise<void> => {
+  if (validationMessages.value.length > 0) {
+    notify({
+      type: 'warn',
+      title: t('builder.saveBlockedTitle'),
+      message: t('builder.saveBlockedMessage'),
+    })
+    return
+  }
+
+  isSavingWorkflow.value = true
+
+  try {
+    const workflow = workflowPreview.value
+    const savedWorkflow = await saveUserWorkflow(
+      {
+        title: workflow.title,
+        description: workflow.description ?? workflow.overview,
+        slug: workflow.slug || slugify(workflow.title),
+        language: workflow.language,
+        definition: workflow,
+      },
+      savedWorkflowId.value,
+    )
+
+    savedWorkflowId.value = savedWorkflow.id
+
+    notify({
+      type: 'message',
+      title: t('builder.saveSuccessTitle'),
+      message: t('builder.saveSuccessMessage'),
+    })
+  } catch {
+    notify({
+      type: 'error',
+      title: t('builder.saveFailedTitle'),
+      message: t('builder.saveFailedMessage'),
+    })
+  } finally {
+    isSavingWorkflow.value = false
+  }
 }
 
 const triggerImport = (): void => {
@@ -998,6 +1063,14 @@ const validationMessages = computed(() => {
         <p class="eyebrow">{{ t('builder.eyebrow') }}</p>
         <h1>{{ t('builder.title') }}</h1>
         <p>{{ t('builder.description') }}</p>
+        <button
+          class="primary-action compact-action"
+          type="button"
+          :disabled="isSavingWorkflow"
+          @click="saveWorkflow"
+        >
+          {{ isSavingWorkflow ? t('builder.saving') : t('builder.saveWorkflow') }}
+        </button>
       </header>
 
       <div class="builder-mode-tabs" role="tablist" aria-label="Builder mode">
@@ -1950,5 +2023,6 @@ const validationMessages = computed(() => {
         <pre class="schema-preview">{{ formattedPreview }}</pre>
       </section>
     </section>
+
   </PrivateWorkspaceShell>
 </template>

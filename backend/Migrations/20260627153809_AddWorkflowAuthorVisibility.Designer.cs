@@ -4,6 +4,7 @@ using System.Text.Json;
 using DxNavigator.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -12,9 +13,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DxNavigator.Api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260627153809_AddWorkflowAuthorVisibility")]
+    partial class AddWorkflowAuthorVisibility
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -228,9 +231,6 @@ namespace DxNavigator.Api.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<int>("InstallCount")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("IsAuthorPublic")
                         .HasColumnType("boolean");
 
@@ -244,9 +244,6 @@ namespace DxNavigator.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(240)
                         .HasColumnType("character varying(240)");
-
-                    b.Property<int?>("SourceUserWorkflowId")
-                        .HasColumnType("integer");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -265,8 +262,6 @@ namespace DxNavigator.Api.Migrations
 
                     b.HasIndex("PublicId")
                         .IsUnique();
-
-                    b.HasIndex("SourceUserWorkflowId");
 
                     b.HasIndex("CreatorUserId", "UpdatedAt")
                         .HasDatabaseName("IX_Workflows_ActiveByCreator")
@@ -451,16 +446,9 @@ namespace DxNavigator.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("DxNavigator.Api.Data.UserWorkflow", "SourceUserWorkflow")
-                        .WithMany()
-                        .HasForeignKey("SourceUserWorkflowId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("CreatorUser");
 
                     b.Navigation("Locale");
-
-                    b.Navigation("SourceUserWorkflow");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
