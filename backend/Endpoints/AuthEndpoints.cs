@@ -128,6 +128,7 @@ public static class AuthEndpoints
 
     private static IResult StartGoogleLogin(
         string? returnUrl,
+        string? preferredLocale,
         IConfiguration configuration,
         SignInManager<ApplicationUser> signInManager)
     {
@@ -140,7 +141,9 @@ public static class AuthEndpoints
         }
 
         var safeReturnUrl = NormalizeReturnUrl(returnUrl);
-        var redirectUrl = $"/api/auth/google/callback?returnUrl={Uri.EscapeDataString(safeReturnUrl)}";
+        var redirectUrl =
+            $"/api/auth/google/callback?returnUrl={Uri.EscapeDataString(safeReturnUrl)}" +
+            $"&preferredLocale={Uri.EscapeDataString(preferredLocale ?? string.Empty)}";
         var properties = signInManager.ConfigureExternalAuthenticationProperties(
             GoogleProvider,
             redirectUrl);
@@ -150,6 +153,7 @@ public static class AuthEndpoints
 
     private static async Task<IResult> CompleteGoogleLoginAsync(
         string? returnUrl,
+        string? preferredLocale,
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         ExampleWorkflowService exampleWorkflowService)
@@ -173,6 +177,15 @@ public static class AuthEndpoints
 
         if (externalSignIn.Succeeded)
         {
+            var externalUser = await userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey);
+
+            if (externalUser is not null)
+            {
+                await exampleWorkflowService.CopyExamplesToUserIfEmptyAsync(
+                    externalUser.Id,
+                    preferredLocale);
+            }
+
             return Results.LocalRedirect(safeReturnUrl);
         }
 
@@ -206,7 +219,7 @@ public static class AuthEndpoints
                     createResult.Errors.Select(error => error.Description).ToArray()));
             }
 
-            await exampleWorkflowService.CopyExamplesToUserIfEmptyAsync(user.Id, null);
+            await exampleWorkflowService.CopyExamplesToUserIfEmptyAsync(user.Id, preferredLocale);
         }
 
         var addLoginResult = await userManager.AddLoginAsync(user, info);
@@ -220,6 +233,7 @@ public static class AuthEndpoints
         }
 
         await signInManager.SignInAsync(user, isPersistent: true);
+        await exampleWorkflowService.CopyExamplesToUserIfEmptyAsync(user.Id, preferredLocale);
 
         return Results.LocalRedirect(safeReturnUrl);
     }

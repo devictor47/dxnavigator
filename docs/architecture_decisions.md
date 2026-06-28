@@ -495,6 +495,14 @@ Authorization will use secure cookie-based authentication. The app should lean t
 
 Google will be the first external login provider. External login secrets must not be committed to the repository. They should come from local user secrets or environment variables.
 
+Google's OAuth redirect URI should live under the backend API path:
+
+```text
+https://<public-domain>/api/auth/google/signin
+```
+
+This keeps the callback compatible with the production frontend container, where nginx serves the Vue app and proxies `/api` requests to the backend.
+
 ### Rules
 
 - Do not implement custom password hashing.
@@ -508,6 +516,7 @@ Google will be the first external login provider. External login secrets must no
 - A Google login with an email matching an existing user should link to that user when safe.
 - A Google login with no matching user should create a user from the provider email and display name when available.
 - Google-provided email may be treated as provider-verified, but this does not introduce a required app-level email verification flow.
+- Google OAuth callback paths should remain under `/api` so production nginx forwards them to the backend.
 - Instagram login is not part of the initial scope.
 - Keep auth endpoints minimal: register, login, logout, current user, Google challenge, and Google callback.
 

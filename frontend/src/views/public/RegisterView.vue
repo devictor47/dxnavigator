@@ -61,7 +61,12 @@ const register = async (): Promise<void> => {
 }
 
 const registerWithGoogle = (): void => {
-  window.location.href = `/api/auth/google/login?returnUrl=${encodeURIComponent(getRedirectPath())}`
+  const params = new URLSearchParams({
+    returnUrl: getRedirectPath(),
+    preferredLocale: locale.value,
+  })
+
+  window.location.href = `/api/auth/google/login?${params.toString()}`
 }
 </script>
 

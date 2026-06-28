@@ -864,10 +864,6 @@ p {
   color: var(--color-white);
 }
 
-.mobile-preview-expand {
-  display: none;
-}
-
 .form-card {
   display: flex;
   flex-direction: column;
@@ -1972,17 +1968,6 @@ p {
 
   .hpi-preview .section-description {
     display: none;
-  }
-
-  .mobile-preview-expand {
-    display: inline-flex;
-  }
-
-  .hpi-preview:not(.expanded) .generated-note {
-    display: -webkit-box;
-    overflow: hidden;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
   }
 
   .page-summary {

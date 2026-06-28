@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronDown, ChevronUp, Copy, Pin } from '@lucide/vue'
+import { Check, Copy, Pin } from '@lucide/vue'
 import { ref } from 'vue'
 
 import { useI18n } from '@/composables/useI18n'
@@ -15,7 +15,6 @@ defineEmits<{
 
 const { t } = useI18n()
 const copied = ref(false)
-const isExpanded = ref(false)
 
 const copyToClipboard = async (text: string) => {
   await navigator.clipboard.writeText(text)
@@ -28,11 +27,7 @@ const copyToClipboard = async (text: string) => {
 </script>
 
 <template>
-  <aside
-    class="hpi-preview"
-    :class="{ sticky, expanded: isExpanded }"
-    aria-labelledby="hpi-preview-title"
-  >
+  <aside class="hpi-preview" :class="{ sticky }" aria-labelledby="hpi-preview-title">
     <div class="preview-header-row">
       <div class="section-heading">
         <p class="eyebrow">{{ t('preview.eyebrow') }}</p>
@@ -64,17 +59,6 @@ const copyToClipboard = async (text: string) => {
           <Pin :size="18" aria-hidden="true" />
         </button>
 
-        <button
-          class="preview-action-button icon-only mobile-preview-expand"
-          type="button"
-          :aria-expanded="isExpanded"
-          :aria-label="isExpanded ? t('preview.collapse') : t('preview.expand')"
-          :title="isExpanded ? t('preview.collapse') : t('preview.expand')"
-          @click="isExpanded = !isExpanded"
-        >
-          <ChevronUp v-if="isExpanded" :size="18" aria-hidden="true" />
-          <ChevronDown v-else :size="18" aria-hidden="true" />
-        </button>
       </div>
     </div>
 

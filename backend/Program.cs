@@ -85,6 +85,7 @@ if (!string.IsNullOrWhiteSpace(googleClientId) &&
         {
             options.ClientId = googleClientId;
             options.ClientSecret = googleClientSecret;
+            options.CallbackPath = "/api/auth/google/signin";
         });
 }
 

@@ -120,8 +120,6 @@ const messages = {
     'preview.eyebrow': 'Generated note',
     'preview.title': 'HPI preview',
     'preview.helper': 'Drag the lower edge to give the note more vertical room.',
-    'preview.expand': 'Expand HPI preview',
-    'preview.collapse': 'Collapse HPI preview',
     'guidance.redFlagsEyebrow': 'Safety',
     'guidance.redFlagsTitle': 'Red flags',
     'guidance.differentialsEyebrow': 'Reasoning',
@@ -519,8 +517,6 @@ const messages = {
     'preview.eyebrow': 'Nota gerada',
     'preview.title': 'Prévia da HMA',
     'preview.helper': 'Arraste a borda inferior para dar mais espaço vertical à nota.',
-    'preview.expand': 'Expandir prévia da HMA',
-    'preview.collapse': 'Recolher prévia da HMA',
 
     'guidance.redFlagsEyebrow': 'Segurança',
     'guidance.redFlagsTitle': 'Sinais de alerta',
