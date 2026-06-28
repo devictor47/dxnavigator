@@ -91,6 +91,18 @@ Suggested Workup
 - Docker
 - Docker Compose
 
+## Backend Tests
+
+The backend test suite lives in [backend/tests/DxNavigator.Api.Tests](../backend/tests/DxNavigator.Api.Tests).
+
+Run it through Docker Compose so the tests use the same .NET 9 runtime and PostgreSQL service as the backend container:
+
+```bash
+docker compose run --rm backend dotnet test tests/DxNavigator.Api.Tests/DxNavigator.Api.Tests.csproj
+```
+
+The tests use a separate PostgreSQL database named `dxnavigator_tests`. Each test resets that database and applies EF Core migrations before exercising the API.
+
 ## Project Status
 
 🚧 Early development

@@ -28,6 +28,7 @@ import {
   type WorkflowSession,
   type WorkflowPreset,
 } from '@/data/workflow'
+import { bundledWorkflowEntries, getClinicalModuleById } from '@/data/modules'
 
 const { locale, t } = useI18n()
 const { notify } = useNotifications()
@@ -253,6 +254,8 @@ const getRouteWorkflowId = (): number | null => {
   return Number.isInteger(workflowId) && workflowId > 0 ? workflowId : null
 }
 
+const isPersistedWorkflow = computed(() => getRouteWorkflowId() !== null)
+
 const loadWorkflowFromRoute = async (): Promise<void> => {
   isLoadingWorkflow.value = true
   workflowLoadError.value = ''
@@ -261,15 +264,34 @@ const loadWorkflowFromRoute = async (): Promise<void> => {
     let workflowId = getRouteWorkflowId()
 
     if (!workflowId) {
+      if (selectedWorkflowId.value) {
+        const bundledWorkflow = getClinicalModuleById(selectedWorkflowId.value, locale.value)
+
+        selectedModule.value = bundledWorkflow
+        selectedPublishedWorkflow.value = null
+        session.value = createWorkflowSession(bundledWorkflow)
+        resetWorkflowState()
+        loadLocalPresetState()
+        refreshGeneratedHpi()
+        return
+      }
+
       const workflows = await fetchUserWorkflows()
       const firstWorkflow = workflows[0]
 
       if (!firstWorkflow) {
-        selectedModule.value = null
-        selectedPublishedWorkflow.value = null
-        session.value = null
-        generatedHpi.value = ''
-        resetWorkflowState()
+        const firstBundledWorkflow = bundledWorkflowEntries[0]
+
+        if (!firstBundledWorkflow) {
+          selectedModule.value = null
+          selectedPublishedWorkflow.value = null
+          session.value = null
+          generatedHpi.value = ''
+          resetWorkflowState()
+          return
+        }
+
+        await router.replace(`/private/complaints/${firstBundledWorkflow.localKey}`)
         return
       }
 
@@ -719,36 +741,38 @@ onBeforeUnmount(() => {
             >
               {{ t('builder.editWorkflow') }}
             </RouterLink>
-            <button
-              v-if="selectedPublishedWorkflow"
-              class="secondary-action compact-action"
-              type="button"
-              :disabled="isPublishingWorkflow"
-              @click="updatePublishedFromCurrentWorkflow"
-            >
-              {{
-                isPublishingWorkflow
-                  ? t('builder.publishing')
-                  : t('builder.updatePublishedWorkflow')
-              }}
-            </button>
-            <button
-              v-else
-              class="secondary-action compact-action"
-              type="button"
-              :disabled="isPublishingWorkflow"
-              @click="requestPublishWorkflow"
-            >
-              {{ isPublishingWorkflow ? t('builder.publishing') : t('builder.publishWorkflow') }}
-            </button>
-            <button
-              class="danger-action compact-action"
-              type="button"
-              :disabled="isRemovingWorkflow"
-              @click="requestRemoveWorkflow"
-            >
-              {{ t('marketplace.removeWorkflow') }}
-            </button>
+            <template v-if="isPersistedWorkflow">
+              <button
+                v-if="selectedPublishedWorkflow"
+                class="secondary-action compact-action"
+                type="button"
+                :disabled="isPublishingWorkflow"
+                @click="updatePublishedFromCurrentWorkflow"
+              >
+                {{
+                  isPublishingWorkflow
+                    ? t('builder.publishing')
+                    : t('builder.updatePublishedWorkflow')
+                }}
+              </button>
+              <button
+                v-else
+                class="secondary-action compact-action"
+                type="button"
+                :disabled="isPublishingWorkflow"
+                @click="requestPublishWorkflow"
+              >
+                {{ isPublishingWorkflow ? t('builder.publishing') : t('builder.publishWorkflow') }}
+              </button>
+              <button
+                class="danger-action compact-action"
+                type="button"
+                :disabled="isRemovingWorkflow"
+                @click="requestRemoveWorkflow"
+              >
+                {{ t('marketplace.removeWorkflow') }}
+              </button>
+            </template>
           </div>
         </header>
 

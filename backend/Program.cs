@@ -146,3 +146,7 @@ app.MapUserWorkflowEndpoints();
 app.MapMarketplaceWorkflowEndpoints();
 
 app.Run();
+
+public partial class Program
+{
+}

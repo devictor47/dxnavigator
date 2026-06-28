@@ -16,12 +16,14 @@ public static class UserWorkflowEndpoints
             .WithTags("User Workflows");
 
         group.MapGet("", ListWorkflowsAsync);
+        group.MapGet("/manage", ListManageWorkflowsAsync);
         group.MapGet("/{id:int}", GetWorkflowAsync);
         group.MapPost("", SaveWorkflowAsync);
         group.MapPut("/{id:int}", UpdateWorkflowAsync);
         group.MapDelete("/{id:int}", DeleteWorkflowAsync);
         group.MapPost("/{id:int}/publish", PublishWorkflowAsync);
         group.MapPut("/{id:int}/published", UpdatePublishedWorkflowAsync);
+        group.MapDelete("/{id:int}/published", UnpublishWorkflowAsync);
 
         return routes;
     }
@@ -44,6 +46,60 @@ public static class UserWorkflowEndpoints
             .ToListAsync();
 
         return Results.Ok(workflows);
+    }
+
+    private static async Task<IResult> ListManageWorkflowsAsync(
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext)
+    {
+        if (!TryGetUserId(principal, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var userWorkflows = await dbContext.UserWorkflows
+            .AsNoTracking()
+            .Include(workflow => workflow.Locale)
+            .Where(workflow => workflow.UserId == userId)
+            .OrderByDescending(workflow => workflow.UpdatedAt)
+            .ToListAsync();
+
+        var userWorkflowIds = userWorkflows.Select(workflow => workflow.Id).ToList();
+        var publishedWorkflows = await dbContext.Workflows
+            .AsNoTracking()
+            .Include(workflow => workflow.Locale)
+            .Include(workflow => workflow.CreatorUser)
+            .Where(workflow =>
+                workflow.CreatorUserId == userId &&
+                workflow.SourceUserWorkflowId != null &&
+                userWorkflowIds.Contains(workflow.SourceUserWorkflowId.Value) &&
+                workflow.Visibility == WorkflowVisibility.Public)
+            .ToListAsync();
+        var publishedBySourceId = publishedWorkflows
+            .Where(workflow => workflow.SourceUserWorkflowId is not null)
+            .ToDictionary(workflow => workflow.SourceUserWorkflowId!.Value);
+
+        var response = userWorkflows
+            .Select(workflow =>
+            {
+                publishedBySourceId.TryGetValue(workflow.Id, out var publishedWorkflow);
+
+                return new UserWorkflowManageResponse(
+                    workflow.Id,
+                    workflow.Title,
+                    workflow.Description,
+                    workflow.Slug,
+                    workflow.Locale!.Code,
+                    workflow.SourceWorkflowId is not null,
+                    publishedWorkflow is null
+                        ? null
+                        : ToPublishedResponse(publishedWorkflow, publishedWorkflow.Locale!.Code),
+                    workflow.CreatedAt,
+                    workflow.UpdatedAt);
+            })
+            .ToList();
+
+        return Results.Ok(response);
     }
 
     private static async Task<IResult> GetWorkflowAsync(
@@ -288,6 +344,51 @@ public static class UserWorkflowEndpoints
         await dbContext.SaveChangesAsync();
 
         return Results.Ok(ToPublishedResponse(publishedWorkflow, userWorkflow.Locale!.Code));
+    }
+
+    private static async Task<IResult> UnpublishWorkflowAsync(
+        int id,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext)
+    {
+        if (!TryGetUserId(principal, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var userWorkflow = await dbContext.UserWorkflows
+            .SingleOrDefaultAsync(workflow => workflow.Id == id && workflow.UserId == userId);
+
+        if (userWorkflow is null)
+        {
+            return Results.NotFound();
+        }
+
+        var publishedWorkflow = await dbContext.Workflows
+            .SingleOrDefaultAsync(workflow =>
+                workflow.CreatorUserId == userId &&
+                workflow.SourceUserWorkflowId == userWorkflow.Id &&
+                workflow.Visibility == WorkflowVisibility.Public);
+
+        if (publishedWorkflow is null)
+        {
+            return Results.NotFound();
+        }
+
+        if (publishedWorkflow.InstallCount == 0)
+        {
+            dbContext.Workflows.Remove(publishedWorkflow);
+        }
+        else
+        {
+            var now = DateTimeOffset.UtcNow;
+            publishedWorkflow.DeletedAt = now;
+            publishedWorkflow.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        return Results.NoContent();
     }
 
     private static async Task<ParsedWorkflowRequest> ParseWorkflowRequestAsync(

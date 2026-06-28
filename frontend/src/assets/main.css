@@ -1364,6 +1364,15 @@ p {
   gap: 18px;
 }
 
+.builder-preview-header {
+  flex-direction: column;
+}
+
+.builder-preview-header .builder-row-actions {
+  justify-content: flex-start;
+  width: 100%;
+}
+
 .builder-section-header h3 {
   font-size: 1.05rem;
 }

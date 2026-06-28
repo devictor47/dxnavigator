@@ -193,9 +193,14 @@ const messages = {
     'builder.workflowSlugHint':
       'Readable text used for URLs, filenames, and browsing. It helps humans recognize the workflow but is not the database identity.',
     'builder.workflowTitle': 'Title',
+    'builder.workflowTitlePlaceholder': 'Example: Chest pain',
     'builder.workflowDescription': 'Description',
     'builder.contentLocale': 'Content locale',
+    'builder.workflowIdPlaceholder': 'Example: chest-pain',
+    'builder.workflowSlugPlaceholder': 'Example: chest-pain',
     'builder.workflowOverview': 'Overview',
+    'builder.workflowOverviewPlaceholder':
+      'Describe the clinical context and what this workflow helps collect.',
     'builder.sectionDescription': 'Section description',
     'builder.hpiTemplateTitle': 'HPI template',
     'builder.hpiTemplateDescription':
@@ -361,6 +366,34 @@ const messages = {
     'marketplace.redFlags': 'red flags',
     'marketplace.openWorkflow': 'Open workflow',
     'marketplace.removeWorkflow': 'Remove workflow',
+    'manage.nav': 'Manage workflows',
+    'manage.eyebrow': 'Workflow library',
+    'manage.title': 'Manage workflows',
+    'manage.description':
+      'Review your private workflows, publication status, install counts, and library actions.',
+    'manage.loading': 'Loading workflows...',
+    'manage.loadFailed': 'Could not load your workflows.',
+    'manage.empty': 'No workflows in your library yet.',
+    'manage.noDescription': 'No description provided.',
+    'manage.statusPublished': 'Published',
+    'manage.statusPrivate': 'Private',
+    'manage.statusInstalled': 'Marketplace',
+    'manage.origin': 'origin',
+    'manage.openWorkflow': 'Open',
+    'manage.unpublish': 'Unpublish',
+    'manage.unpublishing': 'Unpublishing...',
+    'manage.unpublishEyebrow': 'Marketplace',
+    'manage.unpublishTitle': 'Unpublish this workflow?',
+    'manage.unpublishHardDescription':
+      'This published workflow has no installs, so it will be removed from the marketplace.',
+    'manage.unpublishSoftDescription':
+      'This workflow has installs, so it will be hidden from marketplace browsing while installed copies remain available.',
+    'manage.unpublishWarning':
+      'This does not remove private copies already installed by other users.',
+    'manage.unpublishSuccessTitle': 'Workflow unpublished',
+    'manage.unpublishSuccessMessage': 'The workflow is no longer listed in the marketplace.',
+    'manage.unpublishFailedTitle': 'Could not unpublish workflow',
+    'manage.unpublishFailedMessage': 'Check your connection and try again.',
   },
   'pt-BR': {
     'common.help': 'Ajuda',
@@ -765,6 +798,39 @@ const messages = {
     'marketplace.redFlags': 'alertas',
     'marketplace.openWorkflow': 'Abrir fluxo',
     'marketplace.removeWorkflow': 'Remover fluxo',
+    'manage.nav': 'Gerenciar fluxos',
+    'manage.eyebrow': 'Biblioteca de fluxos',
+    'manage.title': 'Gerenciar fluxos',
+    'manage.description':
+      'Revise seus fluxos privados, status de publicação, instalações e ações da biblioteca.',
+    'manage.loading': 'Carregando fluxos...',
+    'manage.loadFailed': 'Não foi possível carregar seus fluxos.',
+    'manage.empty': 'Nenhum fluxo na sua biblioteca ainda.',
+    'manage.noDescription': 'Nenhuma descrição informada.',
+    'manage.statusPublished': 'Publicado',
+    'manage.statusPrivate': 'Privado',
+    'manage.statusInstalled': 'Marketplace',
+    'manage.origin': 'origem',
+    'manage.openWorkflow': 'Abrir',
+    'manage.unpublish': 'Despublicar',
+    'manage.unpublishing': 'Despublicando...',
+    'manage.unpublishEyebrow': 'Marketplace',
+    'manage.unpublishTitle': 'Despublicar este fluxo?',
+    'manage.unpublishHardDescription':
+      'Este fluxo publicado não tem instalações, então será removido do marketplace.',
+    'manage.unpublishSoftDescription':
+      'Este fluxo tem instalações, então será ocultado da busca do marketplace enquanto as cópias instaladas continuam disponíveis.',
+    'manage.unpublishWarning':
+      'Isso não remove cópias privadas já instaladas por outros usuários.',
+    'manage.unpublishSuccessTitle': 'Fluxo despublicado',
+    'manage.unpublishSuccessMessage': 'O fluxo não está mais listado no marketplace.',
+    'manage.unpublishFailedTitle': 'Não foi possível despublicar o fluxo',
+    'manage.unpublishFailedMessage': 'Verifique sua conexão e tente novamente.',
+    'builder.workflowTitlePlaceholder': 'Ex.: Dor toracica',
+    'builder.workflowIdPlaceholder': 'Ex.: dor-toracica',
+    'builder.workflowSlugPlaceholder': 'Ex.: dor-toracica',
+    'builder.workflowOverviewPlaceholder':
+      'Descreva o contexto clinico e o que este fluxo ajuda a coletar.',
   },
 } satisfies Record<Locale, Record<string, string>>
 

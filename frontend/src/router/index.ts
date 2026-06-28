@@ -5,6 +5,7 @@ import RegisterView from '@/views/public/RegisterView.vue'
 import ComplaintView from '@/views/private/ComplaintView.vue'
 import WorkflowMarketplaceView from '@/views/private/WorkflowMarketplaceView.vue'
 import WorkflowBuilderView from '@/views/private/WorkflowBuilderView.vue'
+import WorkflowManageView from '@/views/private/WorkflowManageView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -47,6 +48,11 @@ const router = createRouter({
       path: '/private/marketplace',
       name: 'workflow-marketplace',
       component: WorkflowMarketplaceView,
+    },
+    {
+      path: '/private/workflows',
+      name: 'workflow-manage',
+      component: WorkflowManageView,
     },
   ],
 })

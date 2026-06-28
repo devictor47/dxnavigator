@@ -128,10 +128,6 @@ const installWorkflow = async (workflow: PublishedWorkflow): Promise<void> => {
 
           <div class="marketplace-metrics">
             <span>
-              <strong>{{ workflow.slug }}</strong>
-              {{ t('marketplace.slug') }}
-            </span>
-            <span>
               <strong>{{ workflow.publicId.slice(0, 8) }}</strong>
               {{ t('marketplace.publicId') }}
             </span>

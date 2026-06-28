@@ -13,6 +13,7 @@ import WorkupList from '@/components/WorkupList.vue'
 import { fetchUserWorkflow, saveUserWorkflow } from '@/api/userWorkflows'
 import { useI18n } from '@/composables/useI18n'
 import { useNotifications } from '@/composables/useNotifications'
+import { getClinicalModuleById } from '@/data/modules'
 import {
   createWorkflowSession,
   type ClinicalWorkflow,
@@ -134,11 +135,11 @@ const authoringLocale = ref<Locale>(appLocale.value)
 const availableLocales = Object.keys(locales) as Locale[]
 
 const draft = reactive<DraftWorkflow>({
-  id: 'new-workflow',
-  title: 'New clinical workflow',
-  slug: 'new-clinical-workflow',
+  id: '',
+  title: '',
+  slug: '',
   description: '',
-  overview: 'Describe the clinical context and what this workflow helps collect.',
+  overview: '',
   hpiTemplate: '',
   idWasEdited: false,
   sections: [],
@@ -690,6 +691,8 @@ watch(
 
     if (!Number.isInteger(workflowId) || workflowId <= 0) {
       savedWorkflowId.value = null
+      importWorkflow(getClinicalModuleById(moduleId, authoringLocale.value))
+      draft.slug = draft.slug || slugify(draft.title)
       return
     }
 
@@ -1121,6 +1124,7 @@ const validationMessages = computed(() => {
                   class="text-input"
                   type="text"
                   :value="draft.title"
+                  :placeholder="t('builder.workflowTitlePlaceholder')"
                   @input="updateWorkflowTitle"
                 />
               </label>
@@ -1130,7 +1134,13 @@ const validationMessages = computed(() => {
                   <span>{{ t('builder.workflowId') }}</span>
                   <FieldHint :message="t('builder.workflowIdHint')" />
                 </span>
-                <input class="text-input" type="text" :value="draft.id" @input="updateWorkflowId" />
+                <input
+                  class="text-input"
+                  type="text"
+                  :value="draft.id"
+                  :placeholder="t('builder.workflowIdPlaceholder')"
+                  @input="updateWorkflowId"
+                />
               </label>
 
               <label class="builder-field">
@@ -1138,7 +1148,12 @@ const validationMessages = computed(() => {
                   <span>{{ t('builder.workflowSlug') }}</span>
                   <FieldHint :message="t('builder.workflowSlugHint')" />
                 </span>
-                <input v-model="draft.slug" class="text-input" type="text" />
+                <input
+                  v-model="draft.slug"
+                  class="text-input"
+                  type="text"
+                  :placeholder="t('builder.workflowSlugPlaceholder')"
+                />
               </label>
 
               <label class="builder-field">
@@ -1157,7 +1172,11 @@ const validationMessages = computed(() => {
 
               <label class="builder-field full-span">
                 <span>{{ t('builder.workflowOverview') }}</span>
-                <textarea v-model="draft.overview" class="text-input builder-textarea" />
+                <textarea
+                  v-model="draft.overview"
+                  class="text-input builder-textarea"
+                  :placeholder="t('builder.workflowOverviewPlaceholder')"
+                />
               </label>
             </div>
           </section>
@@ -1874,7 +1893,7 @@ const validationMessages = computed(() => {
         </section>
 
         <aside class="builder-preview" aria-labelledby="builder-preview-title">
-          <div class="builder-card-header compact-header">
+          <div class="builder-card-header compact-header builder-preview-header">
             <div class="section-heading">
               <p class="eyebrow">{{ t('builder.previewEyebrow') }}</p>
               <h2 id="builder-preview-title">{{ t('builder.previewTitle') }}</h2>

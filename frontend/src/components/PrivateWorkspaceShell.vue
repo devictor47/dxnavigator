@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   ClipboardList,
+  Library,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -17,13 +18,14 @@ import AppPreferences from '@/components/AppPreferences.vue'
 import ComplaintSelector from '@/components/ComplaintSelector.vue'
 import { fetchUserWorkflows, type UserWorkflowSummary } from '@/api/userWorkflows'
 import { useI18n } from '@/composables/useI18n'
+import { bundledWorkflowEntries } from '@/data/modules'
 
 const props = defineProps<{
-  activeSection: 'workspace' | 'builder' | 'marketplace'
+  activeSection: 'workspace' | 'builder' | 'marketplace' | 'manage'
   selectedWorkflowId?: string
 }>()
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const isSidebarCollapsed = ref(
@@ -38,14 +40,22 @@ const currentUser = ref<{
   email: string
 } | null>(null)
 
-const workflowLinks = computed(() =>
-  userWorkflows.value.map((workflow) => ({
+const workflowLinks = computed(() => {
+  const savedWorkflowLinks = userWorkflows.value.map((workflow) => ({
     id: String(workflow.id),
     name: workflow.title,
     to: `/private/complaints/${workflow.id}`,
     icon: workflow.slug,
-  })),
-)
+  }))
+  const exampleWorkflowLinks = bundledWorkflowEntries.map((entry) => ({
+    id: entry.localKey,
+    name: entry.workflows[locale.value].title,
+    to: `/private/complaints/${entry.localKey}`,
+    icon: entry.icon,
+  }))
+
+  return [...savedWorkflowLinks, ...exampleWorkflowLinks]
+})
 
 const displayedUserName = computed(() => currentUser.value?.name || t('auth.account'))
 
@@ -194,6 +204,15 @@ onBeforeUnmount(() => {
           >
             <Store class="nav-icon" :size="18" aria-hidden="true" />
             <span class="nav-label">{{ t('marketplace.nav') }}</span>
+          </RouterLink>
+          <RouterLink
+            class="complaint-option"
+            :class="{ selected: activeSection === 'manage' }"
+            to="/private/workflows"
+            :title="t('manage.nav')"
+          >
+            <Library class="nav-icon" :size="18" aria-hidden="true" />
+            <span class="nav-label">{{ t('manage.nav') }}</span>
           </RouterLink>
         </nav>
 

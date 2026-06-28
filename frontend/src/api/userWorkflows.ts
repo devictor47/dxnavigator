@@ -29,6 +29,11 @@ export type UserWorkflowDetail = UserWorkflowSummary & {
   definition: ClinicalWorkflow
 }
 
+export type ManagedUserWorkflow = UserWorkflowSummary & {
+  isInstalledFromMarketplace: boolean
+  publishedWorkflow?: PublishedWorkflow | null
+}
+
 type SaveUserWorkflowInput = {
   title: string
   description?: string
@@ -56,6 +61,18 @@ export const fetchUserWorkflow = async (id: number): Promise<UserWorkflowDetail>
 
   if (!response.ok) {
     throw new Error(`Could not load workflow. Status: ${response.status}.`)
+  }
+
+  return response.json()
+}
+
+export const fetchManagedUserWorkflows = async (): Promise<ManagedUserWorkflow[]> => {
+  const response = await fetch('/api/user-workflows/manage', {
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    throw new Error(`Could not load managed workflows. Status: ${response.status}.`)
   }
 
   return response.json()
@@ -119,6 +136,17 @@ export const updatePublishedWorkflow = async (
   }
 
   return response.json()
+}
+
+export const unpublishUserWorkflow = async (workflowId: number): Promise<void> => {
+  const response = await fetch(`/api/user-workflows/${workflowId}/published`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    throw new Error(`Could not unpublish workflow. Status: ${response.status}.`)
+  }
 }
 
 export const deleteUserWorkflow = async (workflowId: number): Promise<void> => {

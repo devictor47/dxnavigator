@@ -32,6 +32,17 @@ public sealed record UserWorkflowDetailResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
+public sealed record UserWorkflowManageResponse(
+    int Id,
+    string Title,
+    string? Description,
+    string Slug,
+    string Language,
+    bool IsInstalledFromMarketplace,
+    PublishedWorkflowResponse? PublishedWorkflow,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
 public sealed record PublishedWorkflowResponse(
     int Id,
     Guid PublicId,
