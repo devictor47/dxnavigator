@@ -3,11 +3,13 @@ namespace DxNavigator.Api.Contracts;
 public sealed record RegisterRequest(
     string Name,
     string Email,
-    string Password);
+    string Password,
+    string? PreferredLocale = null);
 
 public sealed record LoginRequest(
     string Email,
-    string Password);
+    string Password,
+    string? PreferredLocale = null);
 
 public sealed record CurrentUserResponse(
     int Id,

@@ -13,7 +13,6 @@ import WorkupList from '@/components/WorkupList.vue'
 import { fetchUserWorkflow, saveUserWorkflow } from '@/api/userWorkflows'
 import { useI18n } from '@/composables/useI18n'
 import { useNotifications } from '@/composables/useNotifications'
-import { getClinicalModuleById } from '@/data/modules'
 import {
   createWorkflowSession,
   type ClinicalWorkflow,
@@ -691,8 +690,6 @@ watch(
 
     if (!Number.isInteger(workflowId) || workflowId <= 0) {
       savedWorkflowId.value = null
-      importWorkflow(getClinicalModuleById(moduleId, authoringLocale.value))
-      draft.slug = draft.slug || slugify(draft.title)
       return
     }
 

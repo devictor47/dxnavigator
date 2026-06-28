@@ -18,6 +18,8 @@ public sealed class ApplicationDbContext
 
     public DbSet<UserWorkflow> UserWorkflows => Set<UserWorkflow>();
 
+    public DbSet<ExampleWorkflow> ExampleWorkflows => Set<ExampleWorkflow>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -150,6 +152,9 @@ public sealed class ApplicationDbContext
                 .HasMaxLength(240)
                 .IsRequired();
 
+            entity.Property(workflow => workflow.DisplayOrder)
+                .IsRequired();
+
             entity.Property(workflow => workflow.Definition)
                 .HasColumnType("jsonb")
                 .IsRequired();
@@ -175,11 +180,56 @@ public sealed class ApplicationDbContext
                 .HasForeignKey(workflow => workflow.LocaleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(workflow => new { workflow.UserId, workflow.UpdatedAt })
+            entity.HasIndex(workflow => new { workflow.UserId, workflow.DisplayOrder })
                 .HasDatabaseName("IX_UserWorkflows_ActiveByUser")
                 .HasFilter("\"DeletedAt\" IS NULL");
 
             entity.HasIndex(workflow => workflow.SourceWorkflowId);
+
+            entity.HasQueryFilter(workflow => workflow.DeletedAt == null);
+        });
+
+        builder.Entity<ExampleWorkflow>(entity =>
+        {
+            entity.Property(workflow => workflow.Key)
+                .HasMaxLength(240)
+                .IsRequired();
+
+            entity.Property(workflow => workflow.Title)
+                .HasMaxLength(240)
+                .IsRequired();
+
+            entity.Property(workflow => workflow.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(workflow => workflow.Slug)
+                .HasMaxLength(240)
+                .IsRequired();
+
+            entity.Property(workflow => workflow.DisplayOrder)
+                .IsRequired();
+
+            entity.Property(workflow => workflow.Definition)
+                .HasColumnType("jsonb")
+                .IsRequired();
+
+            entity.Property(workflow => workflow.CreatedAt)
+                .IsRequired();
+
+            entity.Property(workflow => workflow.UpdatedAt)
+                .IsRequired();
+
+            entity.HasOne(workflow => workflow.Locale)
+                .WithMany()
+                .HasForeignKey(workflow => workflow.LocaleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(workflow => workflow.Key)
+                .IsUnique();
+
+            entity.HasIndex(workflow => new { workflow.LocaleId, workflow.DisplayOrder })
+                .HasDatabaseName("IX_ExampleWorkflows_ActiveByLocale")
+                .HasFilter("\"DeletedAt\" IS NULL");
 
             entity.HasQueryFilter(workflow => workflow.DeletedAt == null);
         });

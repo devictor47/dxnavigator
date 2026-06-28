@@ -10,7 +10,7 @@ type AuthErrorResponse = {
   errors?: string[]
 }
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const email = ref('')
@@ -38,6 +38,7 @@ const login = async (): Promise<void> => {
       body: JSON.stringify({
         email: email.value,
         password: password.value,
+        preferredLocale: locale.value,
       }),
     })
 

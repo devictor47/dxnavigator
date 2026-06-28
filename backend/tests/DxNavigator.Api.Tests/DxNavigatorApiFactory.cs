@@ -1,4 +1,5 @@
 using DxNavigator.Api.Data;
+using DxNavigator.Api.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -55,6 +56,8 @@ public sealed class DxNavigatorApiFactory : WebApplicationFactory<Program>
 
         await dbContext.Database.EnsureDeletedAsync();
         await dbContext.Database.MigrateAsync();
+        var exampleWorkflowService = scope.ServiceProvider.GetRequiredService<ExampleWorkflowService>();
+        await exampleWorkflowService.SeedExamplesAsync();
 
         if (!await dbContext.Users.AnyAsync(user => user.Id == TestAuthHandler.UserId))
         {
@@ -70,6 +73,8 @@ public sealed class DxNavigatorApiFactory : WebApplicationFactory<Program>
             });
 
             await dbContext.SaveChangesAsync();
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT setval(pg_get_serial_sequence('\"AspNetUsers\"', 'Id'), (SELECT MAX(\"Id\") FROM \"AspNetUsers\"), true);");
         }
     }
 

@@ -1,6 +1,7 @@
 READMEs
 clinical-data/
 .env
+.vscode/
 .dotnet-home/
 bin/
 obj/

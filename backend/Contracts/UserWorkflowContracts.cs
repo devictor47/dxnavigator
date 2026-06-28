@@ -12,12 +12,16 @@ public sealed record SaveUserWorkflowRequest(
 public sealed record PublishUserWorkflowRequest(
     bool IsAuthorPublic);
 
+public sealed record ReorderUserWorkflowsRequest(
+    IReadOnlyList<int> WorkflowIds);
+
 public sealed record UserWorkflowResponse(
     int Id,
     string Title,
     string? Description,
     string Slug,
     string Language,
+    int DisplayOrder,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
@@ -27,6 +31,7 @@ public sealed record UserWorkflowDetailResponse(
     string? Description,
     string Slug,
     string Language,
+    int DisplayOrder,
     PublishedWorkflowResponse? PublishedWorkflow,
     JsonElement Definition,
     DateTimeOffset CreatedAt,
@@ -38,6 +43,7 @@ public sealed record UserWorkflowManageResponse(
     string? Description,
     string Slug,
     string Language,
+    int DisplayOrder,
     bool IsInstalledFromMarketplace,
     PublishedWorkflowResponse? PublishedWorkflow,
     DateTimeOffset CreatedAt,

@@ -6,6 +6,7 @@ export type UserWorkflowSummary = {
   description?: string
   slug: string
   language: string
+  displayOrder: number
   createdAt: string
   updatedAt: string
 }
@@ -157,6 +158,23 @@ export const deleteUserWorkflow = async (workflowId: number): Promise<void> => {
 
   if (!response.ok) {
     throw new Error(`Could not delete workflow. Status: ${response.status}.`)
+  }
+}
+
+export const reorderUserWorkflows = async (workflowIds: number[]): Promise<void> => {
+  const response = await fetch('/api/user-workflows/order', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      workflowIds,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Could not reorder workflows. Status: ${response.status}.`)
   }
 }
 

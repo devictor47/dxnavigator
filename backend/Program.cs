@@ -1,5 +1,6 @@
 using DxNavigator.Api.Data;
 using DxNavigator.Api.Endpoints;
+using DxNavigator.Api.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -88,6 +89,7 @@ if (!string.IsNullOrWhiteSpace(googleClientId) &&
 }
 
 builder.Services.AddAuthorization();
+builder.Services.AddScoped<ExampleWorkflowService>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -138,6 +140,8 @@ if (app.Configuration.GetValue("Database:Migrate", true))
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await dbContext.Database.MigrateAsync();
+    var exampleWorkflowService = scope.ServiceProvider.GetRequiredService<ExampleWorkflowService>();
+    await exampleWorkflowService.SeedExamplesAsync();
 }
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));

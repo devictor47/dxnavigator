@@ -68,6 +68,11 @@ public static class MarketplaceWorkflowEndpoints
         }
 
         var now = DateTimeOffset.UtcNow;
+        await dbContext.UserWorkflows
+            .Where(workflow => workflow.UserId == userId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(workflow => workflow.DisplayOrder, workflow => workflow.DisplayOrder + 1));
+
         var userWorkflow = new UserWorkflow
         {
             UserId = userId,
@@ -76,6 +81,7 @@ public static class MarketplaceWorkflowEndpoints
             Title = publishedWorkflow.Title,
             Description = publishedWorkflow.Description,
             Slug = publishedWorkflow.Slug,
+            DisplayOrder = 0,
             Definition = JsonDocument.Parse(publishedWorkflow.Definition.RootElement.GetRawText()),
             CreatedAt = now,
             UpdatedAt = now,
@@ -93,6 +99,7 @@ public static class MarketplaceWorkflowEndpoints
                 userWorkflow.Description,
                 userWorkflow.Slug,
                 publishedWorkflow.Locale!.Code,
+                userWorkflow.DisplayOrder,
                 userWorkflow.CreatedAt,
                 userWorkflow.UpdatedAt));
     }

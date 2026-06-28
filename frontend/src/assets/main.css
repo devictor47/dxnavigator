@@ -759,6 +759,14 @@ p {
   background: var(--color-surface-hover);
 }
 
+.complaint-option.reorderable {
+  user-select: none;
+}
+
+.complaint-option.reorderable:active {
+  cursor: grabbing;
+}
+
 .complaint-header {
   max-width: 820px;
   margin-bottom: 18px;
@@ -1390,6 +1398,10 @@ p {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.workflow-header-actions {
+  justify-content: flex-start;
 }
 
 .builder-section-header p,

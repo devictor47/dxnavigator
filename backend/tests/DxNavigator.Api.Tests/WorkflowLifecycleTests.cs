@@ -48,6 +48,98 @@ public sealed class WorkflowLifecycleTests : IClassFixture<DxNavigatorApiFactory
     }
 
     [Fact]
+    public async Task RegisteringUserCopiesExampleWorkflowsForPreferredLocale()
+    {
+        await factory.ResetDatabaseAsync();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/auth/register",
+            new
+            {
+                name = "Example User",
+                email = "examples@example.com",
+                password = "123123",
+                preferredLocale = "pt-BR",
+            },
+            JsonOptions);
+
+        var responseBody = await response.Content.ReadAsStringAsync();
+        Assert.True(response.IsSuccessStatusCode, responseBody);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await dbContext.Users.SingleAsync(user => user.Email == "examples@example.com");
+        var workflows = await dbContext.UserWorkflows
+            .Include(workflow => workflow.Locale)
+            .Where(workflow => workflow.UserId == user.Id)
+            .OrderBy(workflow => workflow.DisplayOrder)
+            .ToListAsync();
+
+        Assert.Equal(5, workflows.Count);
+        Assert.All(workflows, workflow => Assert.Equal("pt-BR", workflow.Locale!.Code));
+        Assert.Equal(new[] { 0, 1, 2, 3, 4 }, workflows.Select(workflow => workflow.DisplayOrder));
+    }
+
+    [Fact]
+    public async Task SavingNewWorkflowMovesExistingWorkflowsDown()
+    {
+        await factory.ResetDatabaseAsync();
+
+        var firstWorkflow = await SaveWorkflowAndReadAsync("First", "first");
+        var secondWorkflow = await SaveWorkflowAndReadAsync("Second", "second");
+
+        var response = await client.GetAsync("/api/user-workflows");
+        response.EnsureSuccessStatusCode();
+        var workflows = await response.Content.ReadFromJsonAsync<List<UserWorkflowResponse>>(JsonOptions);
+
+        Assert.Collection(
+            workflows!,
+            workflow =>
+            {
+                Assert.Equal(secondWorkflow.Id, workflow.Id);
+                Assert.Equal(0, workflow.DisplayOrder);
+            },
+            workflow =>
+            {
+                Assert.Equal(firstWorkflow.Id, workflow.Id);
+                Assert.Equal(1, workflow.DisplayOrder);
+            });
+    }
+
+    [Fact]
+    public async Task ReorderingWorkflowsPersistsManualOrder()
+    {
+        await factory.ResetDatabaseAsync();
+
+        var firstWorkflow = await SaveWorkflowAndReadAsync("First", "first");
+        var secondWorkflow = await SaveWorkflowAndReadAsync("Second", "second");
+
+        var reorderResponse = await client.PutAsJsonAsync(
+            "/api/user-workflows/order",
+            new ReorderUserWorkflowsRequest([firstWorkflow.Id, secondWorkflow.Id]),
+            JsonOptions);
+
+        Assert.Equal(HttpStatusCode.NoContent, reorderResponse.StatusCode);
+
+        var response = await client.GetAsync("/api/user-workflows");
+        response.EnsureSuccessStatusCode();
+        var workflows = await response.Content.ReadFromJsonAsync<List<UserWorkflowResponse>>(JsonOptions);
+
+        Assert.Collection(
+            workflows!,
+            workflow =>
+            {
+                Assert.Equal(firstWorkflow.Id, workflow.Id);
+                Assert.Equal(0, workflow.DisplayOrder);
+            },
+            workflow =>
+            {
+                Assert.Equal(secondWorkflow.Id, workflow.Id);
+                Assert.Equal(1, workflow.DisplayOrder);
+            });
+    }
+
+    [Fact]
     public async Task PublishingWorkflowCreatesMarketplaceSnapshot()
     {
         await factory.ResetDatabaseAsync();

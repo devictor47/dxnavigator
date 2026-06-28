@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using DxNavigator.Api.Contracts;
 using DxNavigator.Api.Data;
+using DxNavigator.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 
@@ -29,7 +30,8 @@ public static class AuthEndpoints
     private static async Task<IResult> RegisterAsync(
         RegisterRequest request,
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager,
+        ExampleWorkflowService exampleWorkflowService)
     {
         var name = request.Name.Trim();
         var email = request.Email.Trim();
@@ -65,6 +67,7 @@ public static class AuthEndpoints
             return Results.BadRequest(ToRegistrationErrorResponse(result.Errors));
         }
 
+        await exampleWorkflowService.CopyExamplesToUserIfEmptyAsync(user.Id, request.PreferredLocale);
         await signInManager.SignInAsync(user, isPersistent: true);
 
         return Results.Ok(ToCurrentUserResponse(user));
@@ -73,7 +76,8 @@ public static class AuthEndpoints
     private static async Task<IResult> LoginAsync(
         LoginRequest request,
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager,
+        ExampleWorkflowService exampleWorkflowService)
     {
         var user = await userManager.FindByEmailAsync(request.Email.Trim());
 
@@ -93,6 +97,8 @@ public static class AuthEndpoints
             return Results.Unauthorized();
         }
 
+        await exampleWorkflowService.CopyExamplesToUserIfEmptyAsync(user.Id, request.PreferredLocale);
+
         return Results.Ok(ToCurrentUserResponse(user));
     }
 
@@ -105,13 +111,19 @@ public static class AuthEndpoints
 
     private static async Task<IResult> GetCurrentUserAsync(
         ClaimsPrincipal principal,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        ExampleWorkflowService exampleWorkflowService)
     {
         var user = await userManager.GetUserAsync(principal);
 
-        return user is null
-            ? Results.Unauthorized()
-            : Results.Ok(ToCurrentUserResponse(user));
+        if (user is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        await exampleWorkflowService.CopyExamplesToUserIfEmptyAsync(user.Id, null);
+
+        return Results.Ok(ToCurrentUserResponse(user));
     }
 
     private static IResult StartGoogleLogin(
@@ -139,7 +151,8 @@ public static class AuthEndpoints
     private static async Task<IResult> CompleteGoogleLoginAsync(
         string? returnUrl,
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager)
+        SignInManager<ApplicationUser> signInManager,
+        ExampleWorkflowService exampleWorkflowService)
     {
         var info = await signInManager.GetExternalLoginInfoAsync();
 
@@ -192,6 +205,8 @@ public static class AuthEndpoints
                     "Google account creation failed.",
                     createResult.Errors.Select(error => error.Description).ToArray()));
             }
+
+            await exampleWorkflowService.CopyExamplesToUserIfEmptyAsync(user.Id, null);
         }
 
         var addLoginResult = await userManager.AddLoginAsync(user, info);

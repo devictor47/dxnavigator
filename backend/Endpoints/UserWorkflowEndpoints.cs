@@ -24,6 +24,7 @@ public static class UserWorkflowEndpoints
         group.MapPost("/{id:int}/publish", PublishWorkflowAsync);
         group.MapPut("/{id:int}/published", UpdatePublishedWorkflowAsync);
         group.MapDelete("/{id:int}/published", UnpublishWorkflowAsync);
+        group.MapPut("/order", ReorderWorkflowsAsync);
 
         return routes;
     }
@@ -41,7 +42,8 @@ public static class UserWorkflowEndpoints
             .AsNoTracking()
             .Include(workflow => workflow.Locale)
             .Where(workflow => workflow.UserId == userId)
-            .OrderByDescending(workflow => workflow.UpdatedAt)
+            .OrderBy(workflow => workflow.DisplayOrder)
+            .ThenByDescending(workflow => workflow.CreatedAt)
             .Select(workflow => ToResponse(workflow, workflow.Locale!.Code))
             .ToListAsync();
 
@@ -61,7 +63,8 @@ public static class UserWorkflowEndpoints
             .AsNoTracking()
             .Include(workflow => workflow.Locale)
             .Where(workflow => workflow.UserId == userId)
-            .OrderByDescending(workflow => workflow.UpdatedAt)
+            .OrderBy(workflow => workflow.DisplayOrder)
+            .ThenByDescending(workflow => workflow.CreatedAt)
             .ToListAsync();
 
         var userWorkflowIds = userWorkflows.Select(workflow => workflow.Id).ToList();
@@ -90,6 +93,7 @@ public static class UserWorkflowEndpoints
                     workflow.Description,
                     workflow.Slug,
                     workflow.Locale!.Code,
+                    workflow.DisplayOrder,
                     workflow.SourceWorkflowId is not null,
                     publishedWorkflow is null
                         ? null
@@ -157,6 +161,7 @@ public static class UserWorkflowEndpoints
 
         var payload = parsedRequest.Payload!;
         var now = DateTimeOffset.UtcNow;
+        await ShiftUserWorkflowsDownAsync(dbContext, userId);
         var workflow = new UserWorkflow
         {
             UserId = userId,
@@ -164,6 +169,7 @@ public static class UserWorkflowEndpoints
             Title = payload.Title,
             Description = payload.Description,
             Slug = payload.Slug,
+            DisplayOrder = 0,
             Definition = JsonDocument.Parse(payload.Definition.GetRawText()),
             CreatedAt = now,
             UpdatedAt = now,
@@ -391,6 +397,64 @@ public static class UserWorkflowEndpoints
         return Results.NoContent();
     }
 
+    private static async Task<IResult> ReorderWorkflowsAsync(
+        ReorderUserWorkflowsRequest request,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext)
+    {
+        if (!TryGetUserId(principal, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var requestedIds = request.WorkflowIds.Distinct().ToArray();
+
+        if (requestedIds.Length != request.WorkflowIds.Count)
+        {
+            return Results.BadRequest(new ProblemDetails
+            {
+                Title = "Workflow order is invalid.",
+                Detail = "Workflow IDs must be unique.",
+            });
+        }
+
+        var workflows = await dbContext.UserWorkflows
+            .Where(workflow => workflow.UserId == userId)
+            .ToListAsync();
+
+        if (requestedIds.Length != workflows.Count ||
+            workflows.Any(workflow => !requestedIds.Contains(workflow.Id)))
+        {
+            return Results.BadRequest(new ProblemDetails
+            {
+                Title = "Workflow order is incomplete.",
+                Detail = "Submit every workflow in the user's library exactly once.",
+            });
+        }
+
+        var workflowById = workflows.ToDictionary(workflow => workflow.Id);
+        var now = DateTimeOffset.UtcNow;
+
+        for (var index = 0; index < requestedIds.Length; index += 1)
+        {
+            var workflow = workflowById[requestedIds[index]];
+            workflow.DisplayOrder = index;
+            workflow.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        return Results.NoContent();
+    }
+
+    private static async Task ShiftUserWorkflowsDownAsync(ApplicationDbContext dbContext, int userId)
+    {
+        await dbContext.UserWorkflows
+            .Where(workflow => workflow.UserId == userId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(workflow => workflow.DisplayOrder, workflow => workflow.DisplayOrder + 1));
+    }
+
     private static async Task<ParsedWorkflowRequest> ParseWorkflowRequestAsync(
         SaveUserWorkflowRequest request,
         ApplicationDbContext dbContext)
@@ -450,6 +514,7 @@ public static class UserWorkflowEndpoints
             workflow.Description,
             workflow.Slug,
             language,
+            workflow.DisplayOrder,
             workflow.CreatedAt,
             workflow.UpdatedAt);
     }
@@ -465,6 +530,7 @@ public static class UserWorkflowEndpoints
             workflow.Description,
             workflow.Slug,
             language,
+            workflow.DisplayOrder,
             publishedWorkflow,
             workflow.Definition.RootElement.Clone(),
             workflow.CreatedAt,

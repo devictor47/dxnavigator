@@ -2,17 +2,11 @@ using System.Text.Json;
 
 namespace DxNavigator.Api.Data;
 
-public sealed class UserWorkflow
+public sealed class ExampleWorkflow
 {
     public int Id { get; set; }
 
-    public int UserId { get; set; }
-
-    public ApplicationUser? User { get; set; }
-
-    public int? SourceWorkflowId { get; set; }
-
-    public Workflow? SourceWorkflow { get; set; }
+    public string Key { get; set; } = string.Empty;
 
     public int LocaleId { get; set; }
 

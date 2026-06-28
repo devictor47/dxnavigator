@@ -11,7 +11,7 @@ type AuthErrorResponse = {
   code?: string
 }
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const name = ref('')
@@ -41,6 +41,7 @@ const register = async (): Promise<void> => {
         name: name.value,
         email: email.value,
         password: password.value,
+        preferredLocale: locale.value,
       }),
     })
 

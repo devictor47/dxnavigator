@@ -1042,3 +1042,83 @@ UserWorkflows.SourceWorkflowId -> Workflows.Id nullable
 ```
 
 This means "this private copy was installed from that marketplace snapshot." It is not used to keep marketplace workflows alive and it is not the publication lifecycle link.
+
+## ADR 016: Example Workflows Are Seeded Backend Data
+
+### Status
+
+Accepted.
+
+### Context
+
+The frontend originally kept hardcoded bundled workflows as both source examples and runtime fallback data. Once workflow persistence exists, keeping two runtime paths creates unnecessary branching:
+
+- hardcoded frontend workflow lookup
+- database workflow lookup
+
+This makes routing, editing, publishing, deleting, ordering, and testing harder because the app must keep asking whether a workflow came from source code or from the backend.
+
+### Decision
+
+Example workflows are stored in a backend `ExampleWorkflows` table and seeded from a JSON file generated from the current TypeScript workflow definitions.
+
+When a user account is created, DxNavigator copies example workflows for the user's preferred locale into `UserWorkflows` if that user has no workflows yet.
+
+If an existing user logs in or calls `/api/auth/me` with an empty workflow library, examples are also copied. This gives older empty accounts the same starting point without requiring a manual migration per user.
+
+The frontend no longer loads hardcoded workflows at runtime. Workflow source files may remain in the repository temporarily as authoring/source material for regenerating seed data, but the application workspace should render persisted backend workflows only.
+
+### Rules
+
+- The clinical workspace lists workflows from `UserWorkflows`.
+- New users receive copied examples, not references to shared examples.
+- Copied examples become normal private user workflows.
+- Editing, publishing, deleting, and reordering examples uses the same code path as user-created workflows.
+- The frontend should not maintain a separate bundled-workflow fallback path.
+- The seed JSON is generated from source workflow definitions until the builder/database workflow authoring model fully replaces hardcoded source files.
+
+### Consequences
+
+The workspace has one runtime source of truth for workflows: the backend.
+
+The example workflow seed process must be kept in sync when source workflow files change. Later, once example workflows can be authored and managed fully through the app, the TypeScript workflow source files can be removed.
+
+## ADR 017: User Workflow Order Is Explicit User Data
+
+### Status
+
+Accepted.
+
+### Context
+
+The sidebar workflow list started as a simple list sorted by timestamps. That is useful initially, but physicians may want their most-used workflows in a custom order.
+
+Sorting by `updatedAt` or `createdAt` is not enough once workflows become part of a user's working environment.
+
+### Decision
+
+`UserWorkflows` owns an explicit `DisplayOrder` integer.
+
+Workflow listing queries order by:
+
+```text
+DisplayOrder ascending, then CreatedAt descending
+```
+
+New workflows and marketplace installs are inserted at the top by shifting existing user workflows down and assigning the new record `DisplayOrder = 0`.
+
+The sidebar allows manual drag reordering. The frontend sends the full ordered workflow id list to the backend, and the backend persists sequential display order values.
+
+### Rules
+
+- Ordering is per user.
+- The reorder endpoint requires the submitted ids to match the user's active workflow library exactly.
+- Reordering does not edit workflow definitions.
+- Newly created or installed workflows appear at the top.
+- Manual order should be preserved across refreshes and devices.
+
+### Consequences
+
+The sidebar now reflects intentional user organization instead of incidental timestamps.
+
+Adding a new workflow shifts existing display order values. This is acceptable for the expected workflow-library size and keeps the UI behavior simple.
