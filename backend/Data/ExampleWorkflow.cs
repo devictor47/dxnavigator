@@ -27,4 +27,6 @@ public sealed class ExampleWorkflow
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public DateTimeOffset? DeletedAt { get; set; }
+
+    public List<ExampleWorkflowPreset> Presets { get; set; } = [];
 }

@@ -1,4 +1,5 @@
 import type { ClinicalWorkflow } from '@/data/workflow'
+import type { ModuleAnswers } from '@/data/workflow'
 
 export type UserWorkflowSummary = {
   id: number
@@ -35,12 +36,29 @@ export type ManagedUserWorkflow = UserWorkflowSummary & {
   publishedWorkflow?: PublishedWorkflow | null
 }
 
+export type UserWorkflowPreset = {
+  id: number
+  userWorkflowId: number
+  title: string
+  description?: string
+  answers: ModuleAnswers
+  displayOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
 type SaveUserWorkflowInput = {
   title: string
   description?: string
   slug: string
   language: string
   definition: ClinicalWorkflow
+}
+
+type SaveUserWorkflowPresetInput = {
+  title: string
+  description?: string
+  answers: ModuleAnswers
 }
 
 export const fetchUserWorkflows = async (): Promise<UserWorkflowSummary[]> => {
@@ -175,6 +193,80 @@ export const reorderUserWorkflows = async (workflowIds: number[]): Promise<void>
 
   if (!response.ok) {
     throw new Error(`Could not reorder workflows. Status: ${response.status}.`)
+  }
+}
+
+export const fetchUserWorkflowPresets = async (
+  workflowId: number,
+): Promise<UserWorkflowPreset[]> => {
+  const response = await fetch(`/api/user-workflows/${workflowId}/presets`, {
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    throw new Error(`Could not load workflow presets. Status: ${response.status}.`)
+  }
+
+  return response.json()
+}
+
+export const saveUserWorkflowPreset = async (
+  workflowId: number,
+  preset: SaveUserWorkflowPresetInput,
+  presetId?: number | null,
+): Promise<UserWorkflowPreset> => {
+  const response = await fetch(
+    presetId
+      ? `/api/user-workflows/${workflowId}/presets/${presetId}`
+      : `/api/user-workflows/${workflowId}/presets`,
+    {
+      method: presetId ? 'PUT' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(preset),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(`Could not save workflow preset. Status: ${response.status}.`)
+  }
+
+  return response.json()
+}
+
+export const deleteUserWorkflowPreset = async (
+  workflowId: number,
+  presetId: number,
+): Promise<void> => {
+  const response = await fetch(`/api/user-workflows/${workflowId}/presets/${presetId}`, {
+    method: 'DELETE',
+    credentials: 'include',
+  })
+
+  if (!response.ok) {
+    throw new Error(`Could not delete workflow preset. Status: ${response.status}.`)
+  }
+}
+
+export const reorderUserWorkflowPresets = async (
+  workflowId: number,
+  presetIds: number[],
+): Promise<void> => {
+  const response = await fetch(`/api/user-workflows/${workflowId}/presets/order`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      presetIds,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`Could not reorder workflow presets. Status: ${response.status}.`)
   }
 }
 

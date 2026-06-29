@@ -1131,3 +1131,121 @@ The sidebar allows manual drag reordering. The frontend sends the full ordered w
 The sidebar now reflects intentional user organization instead of incidental timestamps.
 
 Adding a new workflow shifts existing display order values. This is acceptable for the expected workflow-library size and keeps the UI behavior simple.
+
+## ADR 018: Workflow Presets Are First-Class Child Records
+
+### Status
+
+Accepted.
+
+### Context
+
+Presets started as workflow metadata and local UI state. That was enough to test the interaction model, but it becomes awkward once workflows are persisted, published, installed, and edited across devices.
+
+Keeping presets inside workflow JSONB would make the workflow definition heavier and would blur separate concerns:
+
+- workflow structure
+- reusable form answer states
+- marketplace snapshots
+- installed private copies
+
+### Decision
+
+Presets live in their own tables:
+
+```text
+UserWorkflowPresets -> UserWorkflows
+WorkflowPresets     -> Workflows
+ExampleWorkflowPresets -> ExampleWorkflows
+```
+
+Preset answers remain JSONB because they mirror dynamic workflow answers:
+
+```text
+answers jsonb
+```
+
+Workflow JSON definitions should not contain `presets`. If imported or older workflow JSON includes a `presets` property, the backend extracts those entries into preset rows and stores the workflow definition without that property.
+
+### Rules
+
+- Private presets belong to a private `UserWorkflow`.
+- Published presets belong to a published marketplace `Workflow` snapshot.
+- Example presets belong to seeded `ExampleWorkflow` records and are copied into new user libraries.
+- Publishing a workflow copies the private workflow and its private presets into marketplace snapshot tables.
+- Updating a published workflow replaces both the marketplace workflow snapshot and its preset snapshot set.
+- Installing a marketplace workflow copies both the workflow and its presets into the user's private library.
+- Installed presets are normal private copies and can be edited or removed by the installing user.
+- Private preset changes never automatically propagate to the marketplace.
+- Presets are hard-deleted when their parent workflow copy/snapshot is deleted.
+
+### Consequences
+
+Preset CRUD can be handled through normal API endpoints without rewriting the full workflow JSONB definition.
+
+Publishing remains explicit: a user must click update published workflow before private preset edits replace the marketplace snapshot.
+
+The migration extracts existing `definition.presets` arrays into preset tables and removes the `presets` key from stored JSONB definitions.
+
+## ADR 019: Clinical Calculators Are Curated Frontend Tools
+
+### Status
+
+Accepted.
+
+### Context
+
+DxNavigator's workflow system now covers structured clinical history, HPI generation, presets, guidance, publishing, installing, and marketplace behavior. A smaller high-value clinical layer is calculators: CKD-EPI, HEART, TIMI, GRACE, drug dosing, and similar tools.
+
+Calculators have a different risk profile from workflows. A user-authored workflow can guide a clinical conversation, but a calculator formula must be exact, unit-aware, and source-reviewed.
+
+### Decision
+
+Clinical calculators are a separate private app section:
+
+```text
+/private/calculators
+/private/calculators/:calculatorId
+```
+
+They are frontend-only and hardcoded as curated code, not backend records and not user-generated content.
+
+The calculator registry uses simple metadata:
+
+```ts
+type ClinicalCalculator = {
+  id: string
+  language: Locale
+  title: string
+  description: string
+  category: 'scores' | 'renal' | 'drugs'
+  component: Component
+  sources: CalculatorSource[]
+  content?: unknown
+}
+```
+
+Calculator content follows the same direction as workflow content: user-facing calculator records are authored per language instead of embedding localized text objects in every field.
+
+For example, the HEART Score can have an English calculator definition and a Portuguese calculator definition. Both point to the same calculator component and formula, but their labels, options, interpretations, limitations, and source notes are ordinary strings in that language.
+
+Each calculator owns its own Vue component. The app should not build a generic calculator schema or calculator builder at this stage.
+
+Sources are an array so a calculator can cite original derivation papers, validation studies, guidelines, and formula documentation.
+
+### Rules
+
+- Calculators are curated source code.
+- Calculator formulas should be verified before implementation.
+- Every calculator should render citations/source notes.
+- Calculator outputs should include interpretation limits and should not replace clinical judgment.
+- Do not persist calculator results until there is a concrete encounter/session model.
+- Do not make calculators user-authored until there is a validation and review process.
+- Calculator labels, option text, result descriptions, limitations, and source notes are calculator content and should be localized inside the calculator registry, not through app chrome translation keys.
+- Calculator navigation lives beside workspace, builder, marketplace, and workflow management.
+
+### Consequences
+
+Calculators can add clinical value quickly without introducing new backend storage or marketplace complexity.
+
+The first implementation uses HEART Score as a test calculator because it aligns with chest pain workflows and has a compact, auditable scoring model.

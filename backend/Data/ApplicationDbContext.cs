@@ -20,6 +20,12 @@ public sealed class ApplicationDbContext
 
     public DbSet<ExampleWorkflow> ExampleWorkflows => Set<ExampleWorkflow>();
 
+    public DbSet<UserWorkflowPreset> UserWorkflowPresets => Set<UserWorkflowPreset>();
+
+    public DbSet<WorkflowPreset> WorkflowPresets => Set<WorkflowPreset>();
+
+    public DbSet<ExampleWorkflowPreset> ExampleWorkflowPresets => Set<ExampleWorkflowPreset>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -139,6 +145,38 @@ public sealed class ApplicationDbContext
             entity.HasQueryFilter(workflow => workflow.DeletedAt == null);
         });
 
+        builder.Entity<WorkflowPreset>(entity =>
+        {
+            entity.Property(preset => preset.Title)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(preset => preset.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(preset => preset.Answers)
+                .HasColumnType("jsonb")
+                .IsRequired();
+
+            entity.Property(preset => preset.DisplayOrder)
+                .IsRequired();
+
+            entity.Property(preset => preset.CreatedAt)
+                .IsRequired();
+
+            entity.Property(preset => preset.UpdatedAt)
+                .IsRequired();
+
+            entity.HasOne(preset => preset.Workflow)
+                .WithMany(workflow => workflow.Presets)
+                .HasForeignKey(preset => preset.WorkflowId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(preset => new { preset.WorkflowId, preset.DisplayOrder });
+
+            entity.HasQueryFilter(preset => preset.Workflow!.DeletedAt == null);
+        });
+
         builder.Entity<UserWorkflow>(entity =>
         {
             entity.Property(workflow => workflow.Title)
@@ -189,6 +227,38 @@ public sealed class ApplicationDbContext
             entity.HasQueryFilter(workflow => workflow.DeletedAt == null);
         });
 
+        builder.Entity<UserWorkflowPreset>(entity =>
+        {
+            entity.Property(preset => preset.Title)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(preset => preset.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(preset => preset.Answers)
+                .HasColumnType("jsonb")
+                .IsRequired();
+
+            entity.Property(preset => preset.DisplayOrder)
+                .IsRequired();
+
+            entity.Property(preset => preset.CreatedAt)
+                .IsRequired();
+
+            entity.Property(preset => preset.UpdatedAt)
+                .IsRequired();
+
+            entity.HasOne(preset => preset.UserWorkflow)
+                .WithMany(workflow => workflow.Presets)
+                .HasForeignKey(preset => preset.UserWorkflowId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(preset => new { preset.UserWorkflowId, preset.DisplayOrder });
+
+            entity.HasQueryFilter(preset => preset.UserWorkflow!.DeletedAt == null);
+        });
+
         builder.Entity<ExampleWorkflow>(entity =>
         {
             entity.Property(workflow => workflow.Key)
@@ -232,6 +302,38 @@ public sealed class ApplicationDbContext
                 .HasFilter("\"DeletedAt\" IS NULL");
 
             entity.HasQueryFilter(workflow => workflow.DeletedAt == null);
+        });
+
+        builder.Entity<ExampleWorkflowPreset>(entity =>
+        {
+            entity.Property(preset => preset.Title)
+                .HasMaxLength(200)
+                .IsRequired();
+
+            entity.Property(preset => preset.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(preset => preset.Answers)
+                .HasColumnType("jsonb")
+                .IsRequired();
+
+            entity.Property(preset => preset.DisplayOrder)
+                .IsRequired();
+
+            entity.Property(preset => preset.CreatedAt)
+                .IsRequired();
+
+            entity.Property(preset => preset.UpdatedAt)
+                .IsRequired();
+
+            entity.HasOne(preset => preset.ExampleWorkflow)
+                .WithMany(workflow => workflow.Presets)
+                .HasForeignKey(preset => preset.ExampleWorkflowId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(preset => new { preset.ExampleWorkflowId, preset.DisplayOrder });
+
+            entity.HasQueryFilter(preset => preset.ExampleWorkflow!.DeletedAt == null);
         });
     }
 }

@@ -140,6 +140,23 @@ const messages = {
     'guidance.openSource': 'Open original source',
     'builder.nav.workspace': 'Clinical workspace',
     'builder.nav.builder': 'Workflow builder',
+    'calculators.nav': 'Calculators',
+    'calculators.eyebrow': 'Clinical tools',
+    'calculators.title': 'Calculators',
+    'calculators.description':
+      'Curated bedside calculators for common clinical decisions. These are source-coded tools, not user-generated workflows.',
+    'calculators.searchLabel': 'Search calculators',
+    'calculators.searchPlaceholder': 'Search by name, category, or use case',
+    'calculators.curatedBadge': 'Curated',
+    'calculators.sources': 'sources',
+    'calculators.empty': 'No calculators match this search yet.',
+    'calculators.notFoundTitle': 'Calculator not found',
+    'calculators.notFoundDescription': 'This calculator is not available in the current registry.',
+    'calculators.backToList': 'Back to calculators',
+    'calculators.transparency': 'Transparency',
+    'calculators.sourcesTitle': 'Sources and notes',
+    'calculators.sourcesDescription':
+      'Calculator formulas and interpretations should be reviewed against the cited sources and local protocols.',
     'builder.editWorkflow': 'Edit workflow',
     'builder.eyebrow': 'Workflow authoring',
     'builder.title': 'Workflow builder',
@@ -155,7 +172,7 @@ const messages = {
     'builder.publishDescription':
       'This will add the current saved workflow to the public marketplace as a snapshot.',
     'builder.publishWarning':
-      'After publishing, this public version should be treated as permanent. Do not publish patient information or private notes.',
+      'Publishing copies this workflow and its presets to the marketplace snapshot. Do not publish patient information or private notes.',
     'builder.publishWithAuthorName': 'Show my name as the author in the public marketplace.',
     'builder.publishAnonymousDefault':
       'If unchecked, the workflow will be published anonymously. DxNavigator may still keep an internal creator reference for moderation and audit.',
@@ -540,6 +557,23 @@ const messages = {
 
     'builder.nav.workspace': 'Workspace clínico',
     'builder.nav.builder': 'Construtor de fluxos',
+    'calculators.nav': 'Calculadoras',
+    'calculators.eyebrow': 'Ferramentas clínicas',
+    'calculators.title': 'Calculadoras',
+    'calculators.description':
+      'Calculadoras de beira-leito selecionadas para decisões clínicas comuns. São ferramentas mantidas em código, não fluxos criados por usuários.',
+    'calculators.searchLabel': 'Buscar calculadoras',
+    'calculators.searchPlaceholder': 'Busque por nome, categoria ou uso clínico',
+    'calculators.curatedBadge': 'Curada',
+    'calculators.sources': 'fontes',
+    'calculators.empty': 'Nenhuma calculadora corresponde a esta busca ainda.',
+    'calculators.notFoundTitle': 'Calculadora não encontrada',
+    'calculators.notFoundDescription': 'Esta calculadora não está disponível no registro atual.',
+    'calculators.backToList': 'Voltar para calculadoras',
+    'calculators.transparency': 'Transparência',
+    'calculators.sourcesTitle': 'Fontes e observações',
+    'calculators.sourcesDescription':
+      'Fórmulas e interpretações devem ser revisadas contra as fontes citadas e protocolos locais.',
     'builder.editWorkflow': 'Editar fluxo',
 
     'builder.eyebrow': 'Autoria de fluxos',
@@ -556,7 +590,7 @@ const messages = {
     'builder.publishDescription':
       'Isso adicionará o fluxo salvo atual ao marketplace público como uma cópia fixa.',
     'builder.publishWarning':
-      'Depois de publicado, esta versão pública deve ser tratada como permanente. Não publique informações de pacientes ou anotações privadas.',
+      'A publicação copia este fluxo e suas predefinições para a cópia fixa do marketplace. Não publique informações de pacientes ou anotações privadas.',
     'builder.publishWithAuthorName': 'Mostrar meu nome como autor no marketplace público.',
     'builder.publishAnonymousDefault':
       'Se desmarcado, o fluxo será publicado anonimamente. O DxNavigator ainda pode manter uma referência interna ao criador para moderação e auditoria.',

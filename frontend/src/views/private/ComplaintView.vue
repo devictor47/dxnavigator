@@ -11,12 +11,16 @@ import RedFlagList from '@/components/RedFlagList.vue'
 import WorkflowPresetSelector from '@/components/WorkflowPresetSelector.vue'
 import WorkupList from '@/components/WorkupList.vue'
 import {
+  deleteUserWorkflowPreset,
   deleteUserWorkflow,
+  fetchUserWorkflowPresets,
   fetchUserWorkflow,
   fetchUserWorkflows,
   type PublishedWorkflow,
   publishUserWorkflow,
+  saveUserWorkflowPreset,
   updatePublishedWorkflow,
+  type UserWorkflowPreset,
 } from '@/api/userWorkflows'
 import { useI18n } from '@/composables/useI18n'
 import { useNotifications } from '@/composables/useNotifications'
@@ -35,16 +39,15 @@ const route = useRoute()
 const router = useRouter()
 const presetConfirmationStorageKey = 'dxnavigator-skip-preset-confirmation'
 
-type PersistedPresetState = {
-  presets: WorkflowPreset[]
-  deletedPresetIds: string[]
-}
-
 type PresetFormState = {
   mode: 'create' | 'edit'
   presetId?: string
   title: string
   description: string
+}
+
+type LegacyPresetState = {
+  presets: WorkflowPreset[]
 }
 
 const selectedWorkflowId = computed(() => {
@@ -75,18 +78,9 @@ const rememberPresetConfirmation = ref(false)
 const isSummaryOpen = ref(false)
 const summaryElement = ref<HTMLElement | null>(null)
 const generatedHpi = ref('')
-const localPresetState = ref<PersistedPresetState>({
-  presets: [],
-  deletedPresetIds: [],
-})
+const workflowPresets = ref<WorkflowPreset[]>([])
 let hpiDebounceId: number | undefined
 let hasGeneratedInitialHpi = false
-
-const presetStorageKey = computed(() => {
-  const workflowId = selectedWorkflowId.value || 'none'
-
-  return `dxnavigator-presets:user-workflow:${workflowId}:${locale.value}`
-})
 
 const cloneAnswers = (answers: ModuleAnswers): ModuleAnswers =>
   Object.fromEntries(
@@ -106,89 +100,75 @@ const normalizeAnswers = (answers: ModuleAnswers): [string, ModuleAnswerValue][]
 const areAnswersEqual = (left: ModuleAnswers, right: ModuleAnswers): boolean =>
   JSON.stringify(normalizeAnswers(left)) === JSON.stringify(normalizeAnswers(right))
 
-const createPresetId = (title: string): string => {
-  const baseId =
-    title
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'preset'
+const toWorkflowPreset = (preset: UserWorkflowPreset): WorkflowPreset => ({
+  id: String(preset.id),
+  title: preset.title,
+  ...(preset.description ? { description: preset.description } : {}),
+  answers: preset.answers,
+})
 
-  return `${baseId}-${Date.now()}`
-}
+const mergedPresets = computed<WorkflowPreset[]>(() => workflowPresets.value)
 
-const isPresetState = (value: unknown): value is PersistedPresetState => {
+const isLegacyPresetState = (value: unknown): value is LegacyPresetState => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return false
   }
 
-  const candidate = value as Partial<PersistedPresetState>
+  const candidate = value as Partial<LegacyPresetState>
 
-  return Array.isArray(candidate.presets) && Array.isArray(candidate.deletedPresetIds)
+  return Array.isArray(candidate.presets)
 }
 
-const loadLocalPresetState = (): void => {
+const presetSignature = (preset: Pick<WorkflowPreset, 'title' | 'answers'>): string =>
+  JSON.stringify([preset.title.trim().toLowerCase(), normalizeAnswers(preset.answers)])
+
+const migrateLocalPresetsToBackend = async (
+  workflowId: number,
+  backendPresets: WorkflowPreset[],
+): Promise<WorkflowPreset[]> => {
   if (typeof window === 'undefined') {
-    return
+    return backendPresets
   }
 
-  const storedValue = window.localStorage.getItem(presetStorageKey.value)
+  const legacyStorageKey = `dxnavigator-presets:user-workflow:${workflowId}:${locale.value}`
+  const storedValue = window.localStorage.getItem(legacyStorageKey)
 
   if (!storedValue) {
-    localPresetState.value = {
-      presets: [],
-      deletedPresetIds: [],
-    }
-    return
+    return backendPresets
   }
 
   try {
     const parsedValue = JSON.parse(storedValue)
 
-    localPresetState.value = isPresetState(parsedValue)
-      ? {
-          presets: parsedValue.presets,
-          deletedPresetIds: parsedValue.deletedPresetIds,
-        }
-      : {
-          presets: [],
-          deletedPresetIds: [],
-        }
-  } catch {
-    localPresetState.value = {
-      presets: [],
-      deletedPresetIds: [],
+    if (!isLegacyPresetState(parsedValue) || parsedValue.presets.length === 0) {
+      window.localStorage.removeItem(legacyStorageKey)
+      return backendPresets
     }
+
+    const existingSignatures = new Set(backendPresets.map(presetSignature))
+
+    for (const preset of parsedValue.presets) {
+      if (existingSignatures.has(presetSignature(preset))) {
+        continue
+      }
+
+      const savedPreset = await saveUserWorkflowPreset(workflowId, {
+        title: preset.title,
+        description: preset.description,
+        answers: preset.answers,
+      })
+
+      backendPresets = [toWorkflowPreset(savedPreset), ...backendPresets]
+      existingSignatures.add(presetSignature(preset))
+    }
+
+    window.localStorage.removeItem(legacyStorageKey)
+  } catch {
+    return backendPresets
   }
+
+  return backendPresets
 }
-
-const saveLocalPresetState = (): void => {
-  if (typeof window === 'undefined') {
-    return
-  }
-
-  window.localStorage.setItem(presetStorageKey.value, JSON.stringify(localPresetState.value))
-}
-
-const bundledPresetIds = computed(
-  () => new Set((selectedModule.value?.presets ?? []).map((preset) => preset.id)),
-)
-
-const mergedPresets = computed<WorkflowPreset[]>(() => {
-  const deletedPresetIds = new Set(localPresetState.value.deletedPresetIds)
-  const localPresetById = new Map(localPresetState.value.presets.map((preset) => [preset.id, preset]))
-  const bundledPresets = selectedModule.value?.presets ?? []
-  const visibleBundledPresets = bundledPresets
-    .filter((preset) => !deletedPresetIds.has(preset.id))
-    .map((preset) => localPresetById.get(preset.id) ?? preset)
-  const userOnlyPresets = localPresetState.value.presets.filter(
-    (preset) => !bundledPresetIds.value.has(preset.id) && !deletedPresetIds.has(preset.id),
-  )
-
-  return [...visibleBundledPresets, ...userOnlyPresets]
-})
 
 const activePreset = computed(() =>
   mergedPresets.value.find((preset) => preset.id === activePresetId.value),
@@ -240,10 +220,7 @@ const resetWorkflowState = (): void => {
   activePresetId.value = undefined
   activePresetBaselineAnswers.value = null
   highlightedPresetAnswers.value = {}
-  localPresetState.value = {
-    presets: [],
-    deletedPresetIds: [],
-  }
+  workflowPresets.value = []
   hasGeneratedInitialHpi = false
 }
 
@@ -283,7 +260,10 @@ const loadWorkflowFromRoute = async (): Promise<void> => {
     selectedPublishedWorkflow.value = savedWorkflow.publishedWorkflow ?? null
     session.value = createWorkflowSession(savedWorkflow.definition)
     resetWorkflowState()
-    loadLocalPresetState()
+    workflowPresets.value = await migrateLocalPresetsToBackend(
+      workflowId,
+      (await fetchUserWorkflowPresets(workflowId)).map(toWorkflowPreset),
+    )
     refreshGeneratedHpi()
   } catch {
     selectedModule.value = null
@@ -373,23 +353,18 @@ const cancelPreset = (): void => {
   rememberPresetConfirmation.value = false
 }
 
-const upsertLocalPreset = (preset: WorkflowPreset): void => {
-  const nextPresets = localPresetState.value.presets.filter(
-    (currentPreset) => currentPreset.id !== preset.id,
-  )
+const refreshWorkflowPresets = async (): Promise<void> => {
+  const workflowId = getRouteWorkflowId()
 
-  localPresetState.value = {
-    presets: [...nextPresets, preset],
-    deletedPresetIds: localPresetState.value.deletedPresetIds.filter(
-      (presetId) => presetId !== preset.id,
-    ),
+  if (!workflowId) {
+    workflowPresets.value = []
+    return
   }
 
-  saveLocalPresetState()
+  workflowPresets.value = (await fetchUserWorkflowPresets(workflowId)).map(toWorkflowPreset)
 }
 
-const createPresetFromCurrentAnswers = (title: string, description: string): WorkflowPreset => ({
-  id: createPresetId(title),
+const createPresetFromCurrentAnswers = (title: string, description: string): Omit<WorkflowPreset, 'id'> => ({
   title,
   ...(description.trim() ? { description: description.trim() } : {}),
   answers: cloneAnswers(session.value?.answers ?? {}),
@@ -416,8 +391,15 @@ const closePresetForm = (): void => {
   presetForm.value = null
 }
 
-const savePresetForm = (): void => {
+const savePresetForm = async (): Promise<void> => {
   if (!presetForm.value || !presetForm.value.title.trim()) {
+    return
+  }
+
+  const workflowId = getRouteWorkflowId()
+
+  if (!workflowId) {
+    closePresetForm()
     return
   }
 
@@ -434,18 +416,28 @@ const savePresetForm = (): void => {
       return
     }
 
-    upsertLocalPreset({
-      ...existingPreset,
+    const savedPreset = await saveUserWorkflowPreset(
+      workflowId,
+      {
       title,
       ...(description ? { description } : { description: undefined }),
-    })
+        answers: existingPreset.answers,
+      },
+      Number(presetForm.value.presetId),
+    )
+
+    workflowPresets.value = workflowPresets.value.map((preset) =>
+      preset.id === String(savedPreset.id) ? toWorkflowPreset(savedPreset) : preset,
+    )
 
     closePresetForm()
     return
   }
 
-  const newPreset = createPresetFromCurrentAnswers(title, description)
-  upsertLocalPreset(newPreset)
+  const newPreset = toWorkflowPreset(
+    await saveUserWorkflowPreset(workflowId, createPresetFromCurrentAnswers(title, description)),
+  )
+  await refreshWorkflowPresets()
   activePresetId.value = newPreset.id
   activePresetBaselineAnswers.value = cloneAnswers(newPreset.answers)
   highlightedPresetAnswers.value = Object.fromEntries(
@@ -468,17 +460,33 @@ const requestSavePreset = (): void => {
   openCreatePresetForm()
 }
 
-const replaceActivePreset = (): void => {
+const replaceActivePreset = async (): Promise<void> => {
   if (!pendingSaveDecisionPreset.value) {
     return
   }
 
-  const nextPreset: WorkflowPreset = {
-    ...pendingSaveDecisionPreset.value,
-    answers: cloneAnswers(session.value?.answers ?? {}),
+  const workflowId = getRouteWorkflowId()
+  const presetId = Number(pendingSaveDecisionPreset.value.id)
+
+  if (!workflowId || !Number.isInteger(presetId)) {
+    return
   }
 
-  upsertLocalPreset(nextPreset)
+  const nextPreset = toWorkflowPreset(
+    await saveUserWorkflowPreset(
+      workflowId,
+      {
+        title: pendingSaveDecisionPreset.value.title,
+        description: pendingSaveDecisionPreset.value.description,
+        answers: cloneAnswers(session.value?.answers ?? {}),
+      },
+      presetId,
+    ),
+  )
+
+  workflowPresets.value = workflowPresets.value.map((preset) =>
+    preset.id === nextPreset.id ? nextPreset : preset,
+  )
   activePresetId.value = nextPreset.id
   activePresetBaselineAnswers.value = cloneAnswers(nextPreset.answers)
   highlightedPresetAnswers.value = Object.fromEntries(
@@ -504,20 +512,22 @@ const cancelDeletePreset = (): void => {
   pendingPresetDelete.value = null
 }
 
-const confirmDeletePreset = (): void => {
+const confirmDeletePreset = async (): Promise<void> => {
   if (!pendingPresetDelete.value) {
     return
   }
 
   const presetId = pendingPresetDelete.value.id
-  const deletedPresetIds = bundledPresetIds.value.has(presetId)
-    ? Array.from(new Set([...localPresetState.value.deletedPresetIds, presetId]))
-    : localPresetState.value.deletedPresetIds
+  const workflowId = getRouteWorkflowId()
+  const numericPresetId = Number(presetId)
 
-  localPresetState.value = {
-    presets: localPresetState.value.presets.filter((preset) => preset.id !== presetId),
-    deletedPresetIds,
+  if (!workflowId || !Number.isInteger(numericPresetId)) {
+    pendingPresetDelete.value = null
+    return
   }
+
+  await deleteUserWorkflowPreset(workflowId, numericPresetId)
+  workflowPresets.value = workflowPresets.value.filter((preset) => preset.id !== presetId)
 
   if (activePresetId.value === presetId) {
     activePresetId.value = undefined
@@ -525,7 +535,6 @@ const confirmDeletePreset = (): void => {
     highlightedPresetAnswers.value = {}
   }
 
-  saveLocalPresetState()
   pendingPresetDelete.value = null
 }
 

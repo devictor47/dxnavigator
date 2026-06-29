@@ -15,6 +15,14 @@ public sealed record PublishUserWorkflowRequest(
 public sealed record ReorderUserWorkflowsRequest(
     IReadOnlyList<int> WorkflowIds);
 
+public sealed record SaveUserWorkflowPresetRequest(
+    string Title,
+    string? Description,
+    JsonElement Answers);
+
+public sealed record ReorderUserWorkflowPresetsRequest(
+    IReadOnlyList<int> PresetIds);
+
 public sealed record UserWorkflowResponse(
     int Id,
     string Title,
@@ -59,5 +67,15 @@ public sealed record PublishedWorkflowResponse(
     bool IsAuthorPublic,
     string? AuthorName,
     int InstallCount,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+public sealed record UserWorkflowPresetResponse(
+    int Id,
+    int UserWorkflowId,
+    string Title,
+    string? Description,
+    JsonElement Answers,
+    int DisplayOrder,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using DxNavigator.Api.Contracts;
 using DxNavigator.Api.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +26,11 @@ public static class UserWorkflowEndpoints
         group.MapPut("/{id:int}/published", UpdatePublishedWorkflowAsync);
         group.MapDelete("/{id:int}/published", UnpublishWorkflowAsync);
         group.MapPut("/order", ReorderWorkflowsAsync);
+        group.MapGet("/{id:int}/presets", ListPresetsAsync);
+        group.MapPost("/{id:int}/presets", SavePresetAsync);
+        group.MapPut("/{id:int}/presets/{presetId:int}", UpdatePresetAsync);
+        group.MapDelete("/{id:int}/presets/{presetId:int}", DeletePresetAsync);
+        group.MapPut("/{id:int}/presets/order", ReorderPresetsAsync);
 
         return routes;
     }
@@ -177,6 +183,7 @@ public static class UserWorkflowEndpoints
 
         dbContext.UserWorkflows.Add(workflow);
         await dbContext.SaveChangesAsync();
+        await ReplaceUserWorkflowPresetsIfProvidedAsync(dbContext, workflow.Id, payload.Presets, now);
 
         return Results.Created(
             $"/api/user-workflows/{workflow.Id}",
@@ -218,6 +225,7 @@ public static class UserWorkflowEndpoints
         workflow.UpdatedAt = DateTimeOffset.UtcNow;
 
         await dbContext.SaveChangesAsync();
+        await ReplaceUserWorkflowPresetsIfProvidedAsync(dbContext, workflow.Id, payload.Presets, workflow.UpdatedAt);
 
         return Results.Ok(ToResponse(workflow, payload.Locale.Code));
     }
@@ -278,6 +286,7 @@ public static class UserWorkflowEndpoints
 
         dbContext.Workflows.Add(publishedWorkflow);
         await dbContext.SaveChangesAsync();
+        await CopyUserPresetsToPublishedAsync(dbContext, userWorkflow.Id, publishedWorkflow.Id, now);
 
         return Results.Created(
             $"/api/marketplace/workflows/{publishedWorkflow.PublicId}",
@@ -348,6 +357,11 @@ public static class UserWorkflowEndpoints
         publishedWorkflow.UpdatedAt = DateTimeOffset.UtcNow;
 
         await dbContext.SaveChangesAsync();
+        await CopyUserPresetsToPublishedAsync(
+            dbContext,
+            userWorkflow.Id,
+            publishedWorkflow.Id,
+            publishedWorkflow.UpdatedAt);
 
         return Results.Ok(ToPublishedResponse(publishedWorkflow, userWorkflow.Locale!.Code));
     }
@@ -390,6 +404,204 @@ public static class UserWorkflowEndpoints
             var now = DateTimeOffset.UtcNow;
             publishedWorkflow.DeletedAt = now;
             publishedWorkflow.UpdatedAt = now;
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> ListPresetsAsync(
+        int id,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext)
+    {
+        if (!TryGetUserId(principal, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!await UserOwnsWorkflowAsync(dbContext, id, userId))
+        {
+            return Results.NotFound();
+        }
+
+        var presets = await dbContext.UserWorkflowPresets
+            .AsNoTracking()
+            .Where(preset => preset.UserWorkflowId == id)
+            .OrderBy(preset => preset.DisplayOrder)
+            .ThenByDescending(preset => preset.CreatedAt)
+            .ToListAsync();
+
+        return Results.Ok(presets.Select(ToPresetResponse));
+    }
+
+    private static async Task<IResult> SavePresetAsync(
+        int id,
+        SaveUserWorkflowPresetRequest request,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext)
+    {
+        if (!TryGetUserId(principal, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!await UserOwnsWorkflowAsync(dbContext, id, userId))
+        {
+            return Results.NotFound();
+        }
+
+        var parsedRequest = ParsePresetRequest(request);
+
+        if (!parsedRequest.IsValid)
+        {
+            return parsedRequest.Error!;
+        }
+
+        await ShiftUserWorkflowPresetsDownAsync(dbContext, id);
+
+        var now = DateTimeOffset.UtcNow;
+        var payload = parsedRequest.Payload!;
+        var preset = new UserWorkflowPreset
+        {
+            UserWorkflowId = id,
+            Title = payload.Title,
+            Description = payload.Description,
+            Answers = JsonDocument.Parse(payload.Answers.GetRawText()),
+            DisplayOrder = 0,
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+
+        dbContext.UserWorkflowPresets.Add(preset);
+        await dbContext.SaveChangesAsync();
+
+        return Results.Created(
+            $"/api/user-workflows/{id}/presets/{preset.Id}",
+            ToPresetResponse(preset));
+    }
+
+    private static async Task<IResult> UpdatePresetAsync(
+        int id,
+        int presetId,
+        SaveUserWorkflowPresetRequest request,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext)
+    {
+        if (!TryGetUserId(principal, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var preset = await dbContext.UserWorkflowPresets
+            .Include(preset => preset.UserWorkflow)
+            .SingleOrDefaultAsync(preset =>
+                preset.Id == presetId &&
+                preset.UserWorkflowId == id &&
+                preset.UserWorkflow!.UserId == userId);
+
+        if (preset is null)
+        {
+            return Results.NotFound();
+        }
+
+        var parsedRequest = ParsePresetRequest(request);
+
+        if (!parsedRequest.IsValid)
+        {
+            return parsedRequest.Error!;
+        }
+
+        var payload = parsedRequest.Payload!;
+        preset.Title = payload.Title;
+        preset.Description = payload.Description;
+        preset.Answers = JsonDocument.Parse(payload.Answers.GetRawText());
+        preset.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await dbContext.SaveChangesAsync();
+
+        return Results.Ok(ToPresetResponse(preset));
+    }
+
+    private static async Task<IResult> DeletePresetAsync(
+        int id,
+        int presetId,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext)
+    {
+        if (!TryGetUserId(principal, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        var preset = await dbContext.UserWorkflowPresets
+            .Include(preset => preset.UserWorkflow)
+            .SingleOrDefaultAsync(preset =>
+                preset.Id == presetId &&
+                preset.UserWorkflowId == id &&
+                preset.UserWorkflow!.UserId == userId);
+
+        if (preset is null)
+        {
+            return Results.NotFound();
+        }
+
+        dbContext.UserWorkflowPresets.Remove(preset);
+        await dbContext.SaveChangesAsync();
+
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> ReorderPresetsAsync(
+        int id,
+        ReorderUserWorkflowPresetsRequest request,
+        ClaimsPrincipal principal,
+        ApplicationDbContext dbContext)
+    {
+        if (!TryGetUserId(principal, out var userId))
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!await UserOwnsWorkflowAsync(dbContext, id, userId))
+        {
+            return Results.NotFound();
+        }
+
+        var requestedIds = request.PresetIds.Distinct().ToArray();
+
+        if (requestedIds.Length != request.PresetIds.Count)
+        {
+            return Results.BadRequest(new ProblemDetails
+            {
+                Title = "Preset order is invalid.",
+                Detail = "Preset IDs must be unique.",
+            });
+        }
+
+        var presets = await dbContext.UserWorkflowPresets
+            .Where(preset => preset.UserWorkflowId == id)
+            .ToListAsync();
+
+        if (requestedIds.Length != presets.Count ||
+            presets.Any(preset => !requestedIds.Contains(preset.Id)))
+        {
+            return Results.BadRequest(new ProblemDetails
+            {
+                Title = "Preset order is incomplete.",
+                Detail = "Submit every preset in the workflow exactly once.",
+            });
+        }
+
+        var presetById = presets.ToDictionary(preset => preset.Id);
+        var now = DateTimeOffset.UtcNow;
+
+        for (var index = 0; index < requestedIds.Length; index += 1)
+        {
+            var preset = presetById[requestedIds[index]];
+            preset.DisplayOrder = index;
+            preset.UpdatedAt = now;
         }
 
         await dbContext.SaveChangesAsync();
@@ -455,6 +667,124 @@ public static class UserWorkflowEndpoints
                 .SetProperty(workflow => workflow.DisplayOrder, workflow => workflow.DisplayOrder + 1));
     }
 
+    private static async Task ShiftUserWorkflowPresetsDownAsync(
+        ApplicationDbContext dbContext,
+        int userWorkflowId)
+    {
+        await dbContext.UserWorkflowPresets
+            .Where(preset => preset.UserWorkflowId == userWorkflowId)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(preset => preset.DisplayOrder, preset => preset.DisplayOrder + 1));
+    }
+
+    private static async Task<bool> UserOwnsWorkflowAsync(
+        ApplicationDbContext dbContext,
+        int userWorkflowId,
+        int userId)
+    {
+        return await dbContext.UserWorkflows
+            .AnyAsync(workflow => workflow.Id == userWorkflowId && workflow.UserId == userId);
+    }
+
+    private static async Task CopyUserPresetsToPublishedAsync(
+        ApplicationDbContext dbContext,
+        int userWorkflowId,
+        int workflowId,
+        DateTimeOffset now)
+    {
+        await dbContext.WorkflowPresets
+            .Where(preset => preset.WorkflowId == workflowId)
+            .ExecuteDeleteAsync();
+
+        var userPresets = await dbContext.UserWorkflowPresets
+            .AsNoTracking()
+            .Where(preset => preset.UserWorkflowId == userWorkflowId)
+            .OrderBy(preset => preset.DisplayOrder)
+            .ToListAsync();
+
+        foreach (var preset in userPresets)
+        {
+            dbContext.WorkflowPresets.Add(new WorkflowPreset
+            {
+                WorkflowId = workflowId,
+                Title = preset.Title,
+                Description = preset.Description,
+                Answers = JsonDocument.Parse(preset.Answers.RootElement.GetRawText()),
+                DisplayOrder = preset.DisplayOrder,
+                CreatedAt = now,
+                UpdatedAt = now,
+            });
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static async Task ReplaceUserWorkflowPresetsIfProvidedAsync(
+        ApplicationDbContext dbContext,
+        int userWorkflowId,
+        IReadOnlyList<PresetPayload>? presets,
+        DateTimeOffset now)
+    {
+        if (presets is null)
+        {
+            return;
+        }
+
+        await dbContext.UserWorkflowPresets
+            .Where(preset => preset.UserWorkflowId == userWorkflowId)
+            .ExecuteDeleteAsync();
+
+        for (var index = 0; index < presets.Count; index += 1)
+        {
+            var preset = presets[index];
+
+            dbContext.UserWorkflowPresets.Add(new UserWorkflowPreset
+            {
+                UserWorkflowId = userWorkflowId,
+                Title = preset.Title,
+                Description = preset.Description,
+                Answers = JsonDocument.Parse(preset.Answers.GetRawText()),
+                DisplayOrder = index,
+                CreatedAt = now,
+                UpdatedAt = now,
+            });
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static ParsedPresetRequest ParsePresetRequest(SaveUserWorkflowPresetRequest request)
+    {
+        var title = request.Title.Trim();
+        var description = string.IsNullOrWhiteSpace(request.Description)
+            ? null
+            : request.Description.Trim();
+
+        if (string.IsNullOrWhiteSpace(title) ||
+            request.Answers.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
+        {
+            return ParsedPresetRequest.Invalid(Results.BadRequest(new ProblemDetails
+            {
+                Title = "Preset is incomplete.",
+                Detail = "Title and answers are required.",
+            }));
+        }
+
+        if (request.Answers.ValueKind != JsonValueKind.Object)
+        {
+            return ParsedPresetRequest.Invalid(Results.BadRequest(new ProblemDetails
+            {
+                Title = "Preset answers are invalid.",
+                Detail = "Preset answers must be a JSON object.",
+            }));
+        }
+
+        return ParsedPresetRequest.Valid(new PresetPayload(
+            title,
+            description,
+            request.Answers));
+    }
+
     private static async Task<ParsedWorkflowRequest> ParseWorkflowRequestAsync(
         SaveUserWorkflowRequest request,
         ApplicationDbContext dbContext)
@@ -491,12 +821,54 @@ public static class UserWorkflowEndpoints
             }));
         }
 
+        var normalizedWorkflow = NormalizeWorkflowDefinition(request.Definition);
+
         return ParsedWorkflowRequest.Valid(new WorkflowPayload(
             title,
             description,
             slug,
             locale,
-            request.Definition));
+            normalizedWorkflow.Definition,
+            normalizedWorkflow.Presets));
+    }
+
+    private static NormalizedWorkflowDefinition NormalizeWorkflowDefinition(JsonElement definition)
+    {
+        var node = JsonNode.Parse(definition.GetRawText()) as JsonObject ?? new JsonObject();
+        List<PresetPayload>? presets = null;
+
+        if (node.TryGetPropertyValue("presets", out var presetsNode) &&
+            presetsNode is JsonArray presetArray)
+        {
+            presets = [];
+
+            foreach (var presetNode in presetArray)
+            {
+                if (presetNode is not JsonObject presetObject)
+                {
+                    continue;
+                }
+
+                var title = presetObject["title"]?.GetValue<string>()?.Trim();
+
+                if (string.IsNullOrWhiteSpace(title) ||
+                    presetObject["answers"] is not JsonObject answersObject)
+                {
+                    continue;
+                }
+
+                presets.Add(new PresetPayload(
+                    title,
+                    presetObject["description"]?.GetValue<string>(),
+                    JsonDocument.Parse(answersObject.ToJsonString()).RootElement.Clone()));
+            }
+
+            node.Remove("presets");
+        }
+
+        return new NormalizedWorkflowDefinition(
+            JsonDocument.Parse(node.ToJsonString()).RootElement.Clone(),
+            presets);
     }
 
     private static bool TryGetUserId(ClaimsPrincipal principal, out int userId)
@@ -553,12 +925,35 @@ public static class UserWorkflowEndpoints
             workflow.UpdatedAt);
     }
 
+    private static UserWorkflowPresetResponse ToPresetResponse(UserWorkflowPreset preset)
+    {
+        return new UserWorkflowPresetResponse(
+            preset.Id,
+            preset.UserWorkflowId,
+            preset.Title,
+            preset.Description,
+            preset.Answers.RootElement.Clone(),
+            preset.DisplayOrder,
+            preset.CreatedAt,
+            preset.UpdatedAt);
+    }
+
     private sealed record WorkflowPayload(
         string Title,
         string? Description,
         string Slug,
         Locale Locale,
-        JsonElement Definition);
+        JsonElement Definition,
+        IReadOnlyList<PresetPayload>? Presets);
+
+    private sealed record PresetPayload(
+        string Title,
+        string? Description,
+        JsonElement Answers);
+
+    private sealed record NormalizedWorkflowDefinition(
+        JsonElement Definition,
+        IReadOnlyList<PresetPayload>? Presets);
 
     private sealed record ParsedWorkflowRequest(
         bool IsValid,
@@ -573,6 +968,22 @@ public static class UserWorkflowEndpoints
         public static ParsedWorkflowRequest Invalid(IResult error)
         {
             return new ParsedWorkflowRequest(false, null, error);
+        }
+    }
+
+    private sealed record ParsedPresetRequest(
+        bool IsValid,
+        PresetPayload? Payload,
+        IResult? Error)
+    {
+        public static ParsedPresetRequest Valid(PresetPayload payload)
+        {
+            return new ParsedPresetRequest(true, payload, null);
+        }
+
+        public static ParsedPresetRequest Invalid(IResult error)
+        {
+            return new ParsedPresetRequest(false, null, error);
         }
     }
 }

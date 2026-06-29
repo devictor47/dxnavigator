@@ -195,6 +195,41 @@ public sealed class WorkflowLifecycleTests : IClassFixture<DxNavigatorApiFactory
     }
 
     [Fact]
+    public async Task PublishingAndInstallingWorkflowCopiesPresets()
+    {
+        await factory.ResetDatabaseAsync();
+        var savedWorkflow = await SaveWorkflowAndReadAsync("UTI", "uti");
+
+        var presetResponse = await client.PostAsJsonAsync(
+            $"/api/user-workflows/{savedWorkflow.Id}/presets",
+            CreatePresetRequest("Classic cystitis", $$"""
+            {
+              "dysuria": true,
+              "frequency": true
+            }
+            """),
+            JsonOptions);
+        Assert.Equal(HttpStatusCode.Created, presetResponse.StatusCode);
+
+        var publishedWorkflow = await PublishWorkflowAndReadAsync(savedWorkflow.Id);
+        var installResponse = await client.PostAsync(
+            $"/api/marketplace/workflows/{publishedWorkflow.PublicId}/install",
+            content: null);
+        installResponse.EnsureSuccessStatusCode();
+        var installedWorkflow = await installResponse.Content.ReadFromJsonAsync<UserWorkflowResponse>(JsonOptions);
+
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var publishedPreset = await dbContext.WorkflowPresets.SingleAsync();
+        var installedPreset = await dbContext.UserWorkflowPresets
+            .SingleAsync(preset => preset.UserWorkflowId == installedWorkflow!.Id);
+
+        Assert.Equal("Classic cystitis", publishedPreset.Title);
+        Assert.Equal("Classic cystitis", installedPreset.Title);
+        Assert.True(installedPreset.Answers.RootElement.GetProperty("dysuria").GetBoolean());
+    }
+
+    [Fact]
     public async Task UnpublishingWorkflowSoftDeletesMarketplaceSnapshotAfterInstalls()
     {
         await factory.ResetDatabaseAsync();
@@ -299,5 +334,15 @@ public sealed class WorkflowLifecycleTests : IClassFixture<DxNavigatorApiFactory
             slug,
             "pt-BR",
             definition.RootElement.Clone());
+    }
+
+    private static SaveUserWorkflowPresetRequest CreatePresetRequest(string title, string answersJson)
+    {
+        using var answers = JsonDocument.Parse(answersJson);
+
+        return new SaveUserWorkflowPresetRequest(
+            title,
+            "Test preset",
+            answers.RootElement.Clone());
     }
 }

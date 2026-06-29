@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using DxNavigator.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -44,6 +45,7 @@ public sealed class ExampleWorkflowService
                 continue;
             }
 
+            var normalizedSeed = NormalizeSeedWorkflow(seedWorkflow.Definition);
             var workflow = await dbContext.ExampleWorkflows
                 .IgnoreQueryFilters()
                 .SingleOrDefaultAsync(workflow => workflow.Key == seedWorkflow.Key);
@@ -51,7 +53,7 @@ public sealed class ExampleWorkflowService
 
             if (workflow is null)
             {
-                dbContext.ExampleWorkflows.Add(new ExampleWorkflow
+                workflow = new ExampleWorkflow
                 {
                     Key = seedWorkflow.Key,
                     LocaleId = locale.Id,
@@ -59,21 +61,43 @@ public sealed class ExampleWorkflowService
                     Description = seedWorkflow.Description,
                     Slug = seedWorkflow.Slug,
                     DisplayOrder = seedWorkflow.DisplayOrder,
-                    Definition = JsonDocument.Parse(seedWorkflow.Definition.GetRawText()),
+                    Definition = normalizedSeed.Definition,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                };
+                dbContext.ExampleWorkflows.Add(workflow);
+            }
+            else
+            {
+                workflow.LocaleId = locale.Id;
+                workflow.Title = seedWorkflow.Title;
+                workflow.Description = seedWorkflow.Description;
+                workflow.Slug = seedWorkflow.Slug;
+                workflow.DisplayOrder = seedWorkflow.DisplayOrder;
+                workflow.Definition = normalizedSeed.Definition;
+                workflow.UpdatedAt = now;
+                workflow.DeletedAt = null;
+            }
+
+            await dbContext.SaveChangesAsync();
+
+            await dbContext.ExampleWorkflowPresets
+                .Where(preset => preset.ExampleWorkflowId == workflow.Id)
+                .ExecuteDeleteAsync();
+
+            foreach (var preset in normalizedSeed.Presets)
+            {
+                dbContext.ExampleWorkflowPresets.Add(new ExampleWorkflowPreset
+                {
+                    ExampleWorkflowId = workflow.Id,
+                    Title = preset.Title,
+                    Description = preset.Description,
+                    Answers = JsonDocument.Parse(preset.Answers.RootElement.GetRawText()),
+                    DisplayOrder = preset.DisplayOrder,
                     CreatedAt = now,
                     UpdatedAt = now,
                 });
-                continue;
             }
-
-            workflow.LocaleId = locale.Id;
-            workflow.Title = seedWorkflow.Title;
-            workflow.Description = seedWorkflow.Description;
-            workflow.Slug = seedWorkflow.Slug;
-            workflow.DisplayOrder = seedWorkflow.DisplayOrder;
-            workflow.Definition = JsonDocument.Parse(seedWorkflow.Definition.GetRawText());
-            workflow.UpdatedAt = now;
-            workflow.DeletedAt = null;
         }
 
         await dbContext.SaveChangesAsync();
@@ -91,6 +115,7 @@ public sealed class ExampleWorkflowService
         var localeCode = await ResolveLocaleCodeAsync(preferredLocale);
         var examples = await dbContext.ExampleWorkflows
             .Include(workflow => workflow.Locale)
+            .Include(workflow => workflow.Presets)
             .Where(workflow => workflow.Locale!.Code == localeCode)
             .OrderBy(workflow => workflow.DisplayOrder)
             .ToListAsync();
@@ -99,6 +124,7 @@ public sealed class ExampleWorkflowService
         {
             examples = await dbContext.ExampleWorkflows
                 .Include(workflow => workflow.Locale)
+                .Include(workflow => workflow.Presets)
                 .Where(workflow => workflow.Locale!.Code == DefaultLocale)
                 .OrderBy(workflow => workflow.DisplayOrder)
                 .ToListAsync();
@@ -108,7 +134,7 @@ public sealed class ExampleWorkflowService
 
         foreach (var example in examples)
         {
-            dbContext.UserWorkflows.Add(new UserWorkflow
+            var userWorkflow = new UserWorkflow
             {
                 UserId = userId,
                 LocaleId = example.LocaleId,
@@ -119,7 +145,24 @@ public sealed class ExampleWorkflowService
                 Definition = JsonDocument.Parse(example.Definition.RootElement.GetRawText()),
                 CreatedAt = now,
                 UpdatedAt = now,
-            });
+            };
+
+            dbContext.UserWorkflows.Add(userWorkflow);
+            await dbContext.SaveChangesAsync();
+
+            foreach (var preset in example.Presets.OrderBy(preset => preset.DisplayOrder))
+            {
+                dbContext.UserWorkflowPresets.Add(new UserWorkflowPreset
+                {
+                    UserWorkflowId = userWorkflow.Id,
+                    Title = preset.Title,
+                    Description = preset.Description,
+                    Answers = JsonDocument.Parse(preset.Answers.RootElement.GetRawText()),
+                    DisplayOrder = preset.DisplayOrder,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                });
+            }
         }
 
         await dbContext.SaveChangesAsync();
@@ -144,4 +187,56 @@ public sealed class ExampleWorkflowService
         string Language,
         int DisplayOrder,
         JsonElement Definition);
+
+    private static NormalizedSeedWorkflow NormalizeSeedWorkflow(JsonElement definition)
+    {
+        var node = JsonNode.Parse(definition.GetRawText()) as JsonObject ?? new JsonObject();
+        var presets = new List<SeedPreset>();
+
+        if (node.TryGetPropertyValue("presets", out var presetsNode) &&
+            presetsNode is JsonArray presetArray)
+        {
+            for (var index = 0; index < presetArray.Count; index += 1)
+            {
+                if (presetArray[index] is not JsonObject presetObject)
+                {
+                    continue;
+                }
+
+                var title = presetObject["title"]?.GetValue<string>()?.Trim();
+
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    continue;
+                }
+
+                if (presetObject["answers"] is not JsonObject answersObject)
+                {
+                    continue;
+                }
+
+                presets.Add(new SeedPreset(
+                    title,
+                    presetObject["description"]?.GetValue<string>(),
+                    JsonDocument.Parse(answersObject.ToJsonString()),
+                    index));
+            }
+
+            node.Remove("presets");
+        }
+
+        return new NormalizedSeedWorkflow(
+            JsonDocument.Parse(node.ToJsonString()),
+            presets);
+    }
+
+    private sealed record NormalizedSeedWorkflow(
+        JsonDocument Definition,
+        IReadOnlyList<SeedPreset> Presets);
+
+    private sealed record SeedPreset(
+        string Title,
+        string? Description,
+        JsonDocument Answers,
+        int DisplayOrder);
 }

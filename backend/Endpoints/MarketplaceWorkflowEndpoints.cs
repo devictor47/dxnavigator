@@ -90,6 +90,7 @@ public static class MarketplaceWorkflowEndpoints
         dbContext.UserWorkflows.Add(userWorkflow);
         publishedWorkflow.InstallCount += 1;
         await dbContext.SaveChangesAsync();
+        await CopyPublishedPresetsToUserAsync(dbContext, publishedWorkflow.Id, userWorkflow.Id, now);
 
         return Results.Created(
             $"/api/user-workflows/{userWorkflow.Id}",
@@ -109,5 +110,34 @@ public static class MarketplaceWorkflowEndpoints
         var userIdValue = principal.FindFirstValue(ClaimTypes.NameIdentifier);
 
         return int.TryParse(userIdValue, out userId);
+    }
+
+    private static async Task CopyPublishedPresetsToUserAsync(
+        ApplicationDbContext dbContext,
+        int workflowId,
+        int userWorkflowId,
+        DateTimeOffset now)
+    {
+        var presets = await dbContext.WorkflowPresets
+            .AsNoTracking()
+            .Where(preset => preset.WorkflowId == workflowId)
+            .OrderBy(preset => preset.DisplayOrder)
+            .ToListAsync();
+
+        foreach (var preset in presets)
+        {
+            dbContext.UserWorkflowPresets.Add(new UserWorkflowPreset
+            {
+                UserWorkflowId = userWorkflowId,
+                Title = preset.Title,
+                Description = preset.Description,
+                Answers = JsonDocument.Parse(preset.Answers.RootElement.GetRawText()),
+                DisplayOrder = preset.DisplayOrder,
+                CreatedAt = now,
+                UpdatedAt = now,
+            });
+        }
+
+        await dbContext.SaveChangesAsync();
     }
 }

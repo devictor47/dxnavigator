@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  Calculator,
   ClipboardList,
   Library,
   LogOut,
@@ -17,6 +18,11 @@ import { useRoute, useRouter } from 'vue-router'
 import AppPreferences from '@/components/AppPreferences.vue'
 import ComplaintSelector from '@/components/ComplaintSelector.vue'
 import {
+  calculatorCategoryLabels,
+  getCalculatorsByCategory,
+} from '@/calculators/calculatorRegistry'
+import type { CalculatorCategory } from '@/calculators/types'
+import {
   fetchUserWorkflows,
   reorderUserWorkflows,
   type UserWorkflowSummary,
@@ -24,11 +30,12 @@ import {
 import { useI18n } from '@/composables/useI18n'
 
 const props = defineProps<{
-  activeSection: 'workspace' | 'builder' | 'marketplace' | 'manage'
+  activeSection: 'workspace' | 'builder' | 'marketplace' | 'manage' | 'calculators'
   selectedWorkflowId?: string
+  selectedCalculatorId?: string
 }>()
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const isSidebarCollapsed = ref(
@@ -37,6 +44,7 @@ const isSidebarCollapsed = ref(
 const isAccountMenuOpen = ref(false)
 const accountElement = ref<HTMLElement | null>(null)
 const userWorkflows = ref<UserWorkflowSummary[]>([])
+const calculatorSearchTerm = ref('')
 const currentUser = ref<{
   id: number
   name: string
@@ -51,6 +59,28 @@ const workflowLinks = computed(() =>
     icon: workflow.slug,
   })),
 )
+
+const calculatorGroups = computed(() => {
+  const query = calculatorSearchTerm.value.trim().toLowerCase()
+  const groups = getCalculatorsByCategory(locale.value)
+
+  return Object.entries(groups)
+    .map(([category, calculators]) => ({
+      category,
+      label: calculatorCategoryLabels[locale.value][category as CalculatorCategory],
+      calculators: calculators.filter((calculator) => {
+        if (!query) {
+          return true
+        }
+
+        return [calculator.title, calculator.description]
+          .join(' ')
+          .toLowerCase()
+          .includes(query)
+      }),
+    }))
+    .filter((group) => group.calculators.length > 0)
+})
 
 const displayedUserName = computed(() => currentUser.value?.name || t('auth.account'))
 
@@ -213,6 +243,15 @@ onBeforeUnmount(() => {
           </RouterLink>
           <RouterLink
             class="complaint-option"
+            :class="{ selected: activeSection === 'calculators' }"
+            to="/private/calculators"
+            :title="t('calculators.nav')"
+          >
+            <Calculator class="nav-icon" :size="18" aria-hidden="true" />
+            <span class="nav-label">{{ t('calculators.nav') }}</span>
+          </RouterLink>
+          <RouterLink
+            class="complaint-option"
             :class="{ selected: activeSection === 'marketplace' }"
             to="/private/marketplace"
             :title="t('marketplace.nav')"
@@ -232,12 +271,55 @@ onBeforeUnmount(() => {
         </nav>
 
         <ComplaintSelector
+          v-if="activeSection !== 'calculators'"
           :complaints="workflowLinks"
           :selected-complaint-id="selectedWorkflowId ?? ''"
           :compact="isSidebarCollapsed"
           reorderable
           @reorder="reorderWorkflows"
         />
+
+        <section
+          v-else
+          class="calculator-sidebar-list"
+          :class="{ compact: isSidebarCollapsed }"
+          aria-labelledby="calculator-sidebar-title"
+        >
+          <div class="sidebar-section-heading">
+            <p class="eyebrow">{{ t('calculators.eyebrow') }}</p>
+            <h2 id="calculator-sidebar-title">{{ t('calculators.title') }}</h2>
+          </div>
+
+          <label class="sidebar-search-field">
+            <span>{{ t('calculators.searchLabel') }}</span>
+            <input
+              v-model="calculatorSearchTerm"
+              class="text-input"
+              type="search"
+              :placeholder="t('calculators.searchPlaceholder')"
+            />
+          </label>
+
+          <details
+            v-for="group in calculatorGroups"
+            :key="group.category"
+            class="sidebar-accordion"
+            open
+          >
+            <summary>{{ group.label }}</summary>
+            <RouterLink
+              v-for="calculatorItem in group.calculators"
+              :key="calculatorItem.id"
+              class="complaint-option"
+              :class="{ selected: calculatorItem.id === selectedCalculatorId }"
+              :to="`/private/calculators/${calculatorItem.id}`"
+              :title="calculatorItem.title"
+            >
+              <Calculator class="nav-icon" :size="18" aria-hidden="true" />
+              <span class="nav-label">{{ calculatorItem.title }}</span>
+            </RouterLink>
+          </details>
+        </section>
       </div>
 
       <div ref="accountElement" class="sidebar-account" :class="{ open: isAccountMenuOpen }">

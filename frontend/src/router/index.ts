@@ -6,6 +6,8 @@ import ComplaintView from '@/views/private/ComplaintView.vue'
 import WorkflowMarketplaceView from '@/views/private/WorkflowMarketplaceView.vue'
 import WorkflowBuilderView from '@/views/private/WorkflowBuilderView.vue'
 import WorkflowManageView from '@/views/private/WorkflowManageView.vue'
+import CalculatorIndexView from '@/views/private/CalculatorIndexView.vue'
+import CalculatorDetailView from '@/views/private/CalculatorDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -53,6 +55,16 @@ const router = createRouter({
       path: '/private/workflows',
       name: 'workflow-manage',
       component: WorkflowManageView,
+    },
+    {
+      path: '/private/calculators',
+      name: 'calculator-index',
+      component: CalculatorIndexView,
+    },
+    {
+      path: '/private/calculators/:calculatorId',
+      name: 'calculator-detail',
+      component: CalculatorDetailView,
     },
   ],
 })
