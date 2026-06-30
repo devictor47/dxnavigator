@@ -16,7 +16,7 @@ const calculator = computed(() => getClinicalCalculatorById(route.params.calcula
 
 <template>
   <PrivateWorkspaceShell active-section="calculators" :selected-calculator-id="calculator?.id">
-    <section class="workspace-content">
+    <section class="workspace-content calculator-detail-content">
       <section v-if="!calculator" class="form-card workspace-state-card">
         <p class="eyebrow">{{ t('calculators.eyebrow') }}</p>
         <h1>{{ t('calculators.notFoundTitle') }}</h1>

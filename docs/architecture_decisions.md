@@ -1237,6 +1237,7 @@ Sources are an array so a calculator can cite original derivation papers, valida
 
 - Calculators are curated source code.
 - Calculator formulas should be verified before implementation.
+- Dose/rate converters should clearly state that they convert units and concentrations rather than recommend a dose.
 - Every calculator should render citations/source notes.
 - Calculator outputs should include interpretation limits and should not replace clinical judgment.
 - Do not persist calculator results until there is a concrete encounter/session model.
@@ -1248,4 +1249,4 @@ Sources are an array so a calculator can cite original derivation papers, valida
 
 Calculators can add clinical value quickly without introducing new backend storage or marketplace complexity.
 
-The first implementation uses HEART Score as a test calculator because it aligns with chest pain workflows and has a compact, auditable scoring model.
+The first implementations use HEART Score, Wells Criteria for DVT and PE, PERC, CURB-65, CRB-65, Alvarado Score, Pediatric Appendicitis Score, qSOFA, Glasgow Coma Scale, NIH Stroke Scale, Canadian CT Head Rule, Tokyo Criteria for Acute Cholecystitis, and an infusion dose converter as test calculators because they are compact, clinically familiar, and have auditable scoring, diagnostic, or conversion models.
