@@ -9,17 +9,17 @@ const ageField: TextField = {
   key: 'age',
   label: 'Age',
   type: 'text',
-  placeholder: 'Example: 35 years',
-  narrative: { suffix: 'old' },
+  placeholder: 'Example: 35',
+  narrative: { suffix: 'years old' },
 }
 const sexField: SelectField = {
   key: 'sex',
   label: 'Sex',
   type: 'select',
   options: [
-    { label: 'Female', value: 'female', narrative: 'female patient' },
-    { label: 'Male', value: 'male', narrative: 'male patient' },
-    { label: 'Other / not specified', value: 'other', narrative: 'patient' },
+    { label: 'Female', value: 'female', narrative: 'female' },
+    { label: 'Male', value: 'male', narrative: 'male' },
+    { label: 'Other / not specified', value: 'other' },
   ],
 }
 const onsetTimingField: SelectField = {
@@ -671,7 +671,6 @@ export const migraineModule: ClinicalWorkflow = {
       title: 'Typical low-risk migraine',
       description: 'Classic episodic migraine without aura and no secondary headache red flags.',
       answers: {
-        age: '35 years',
         sex: 'female',
         onsetTiming: 'gradual',
         timeToPeak: 'more-than-1-hour',
@@ -712,7 +711,6 @@ export const migraineModule: ClinicalWorkflow = {
       description:
         'Migraine phenotype with visual aura lasting within the usual 5 to 60 minute window.',
       answers: {
-        age: '29 years',
         sex: 'female',
         onsetTiming: 'gradual',
         timeToPeak: 'more-than-1-hour',
@@ -751,7 +749,6 @@ export const migraineModule: ClinicalWorkflow = {
       description:
         'Sudden maximal onset with neurologic or mental status concern requiring urgent escalation.',
       answers: {
-        age: '52 years',
         sex: 'female',
         onsetTiming: 'sudden',
         timeToPeak: 'less-than-1-minute',
@@ -786,7 +783,6 @@ export const migraineModule: ClinicalWorkflow = {
       title: 'Chronic migraine / medication overuse risk',
       description: 'Frequent headaches with high acute medication use and changed pattern.',
       answers: {
-        age: '48 years',
         sex: 'female',
         onsetTiming: 'gradual',
         timeToPeak: 'more-than-1-hour',

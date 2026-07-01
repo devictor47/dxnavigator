@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   Calculator,
+  ClipboardCheck,
   ClipboardList,
   Library,
   LogOut,
@@ -23,6 +24,11 @@ import {
 } from '@/calculators/calculatorRegistry'
 import type { CalculatorCategory } from '@/calculators/types'
 import {
+  getManagementGuidesByCategory,
+  managementCategoryLabels,
+} from '@/management/managementRegistry'
+import type { ManagementGuideCategory } from '@/management/types'
+import {
   fetchUserWorkflows,
   reorderUserWorkflows,
   type UserWorkflowSummary,
@@ -30,9 +36,10 @@ import {
 import { useI18n } from '@/composables/useI18n'
 
 const props = defineProps<{
-  activeSection: 'workspace' | 'builder' | 'marketplace' | 'manage' | 'calculators'
+  activeSection: 'workspace' | 'builder' | 'marketplace' | 'manage' | 'calculators' | 'management'
   selectedWorkflowId?: string
   selectedCalculatorId?: string
+  selectedManagementGuideId?: string
 }>()
 
 const { locale, t } = useI18n()
@@ -45,6 +52,7 @@ const isAccountMenuOpen = ref(false)
 const accountElement = ref<HTMLElement | null>(null)
 const userWorkflows = ref<UserWorkflowSummary[]>([])
 const calculatorSearchTerm = ref('')
+const managementSearchTerm = ref('')
 const currentUser = ref<{
   id: number
   name: string
@@ -80,6 +88,28 @@ const calculatorGroups = computed(() => {
       }),
     }))
     .filter((group) => group.calculators.length > 0)
+})
+
+const managementGroups = computed(() => {
+  const query = managementSearchTerm.value.trim().toLowerCase()
+  const groups = getManagementGuidesByCategory(locale.value)
+
+  return Object.entries(groups)
+    .map(([category, guides]) => ({
+      category,
+      label: managementCategoryLabels[locale.value][category as ManagementGuideCategory],
+      guides: guides.filter((guide) => {
+        if (!query) {
+          return true
+        }
+
+        return [guide.title, guide.description]
+          .join(' ')
+          .toLowerCase()
+          .includes(query)
+      }),
+    }))
+    .filter((group) => group.guides.length > 0)
 })
 
 const displayedUserName = computed(() => currentUser.value?.name || t('auth.account'))
@@ -252,6 +282,15 @@ onBeforeUnmount(() => {
           </RouterLink>
           <RouterLink
             class="complaint-option"
+            :class="{ selected: activeSection === 'management' }"
+            to="/private/management"
+            :title="t('management.nav')"
+          >
+            <ClipboardCheck class="nav-icon" :size="18" aria-hidden="true" />
+            <span class="nav-label">{{ t('management.nav') }}</span>
+          </RouterLink>
+          <RouterLink
+            class="complaint-option"
             :class="{ selected: activeSection === 'marketplace' }"
             to="/private/marketplace"
             :title="t('marketplace.nav')"
@@ -271,7 +310,7 @@ onBeforeUnmount(() => {
         </nav>
 
         <ComplaintSelector
-          v-if="activeSection !== 'calculators'"
+          v-if="activeSection !== 'calculators' && activeSection !== 'management'"
           :complaints="workflowLinks"
           :selected-complaint-id="selectedWorkflowId ?? ''"
           :compact="isSidebarCollapsed"
@@ -280,7 +319,7 @@ onBeforeUnmount(() => {
         />
 
         <section
-          v-else
+          v-else-if="activeSection === 'calculators'"
           class="calculator-sidebar-list"
           :class="{ compact: isSidebarCollapsed }"
           aria-labelledby="calculator-sidebar-title"
@@ -306,7 +345,7 @@ onBeforeUnmount(() => {
             class="sidebar-accordion"
             open
           >
-            <summary>{{ group.label }}</summary>
+            <summary @click.stop>{{ group.label }}</summary>
             <RouterLink
               v-for="calculatorItem in group.calculators"
               :key="calculatorItem.id"
@@ -317,6 +356,48 @@ onBeforeUnmount(() => {
             >
               <Calculator class="nav-icon" :size="18" aria-hidden="true" />
               <span class="nav-label">{{ calculatorItem.title }}</span>
+            </RouterLink>
+          </details>
+        </section>
+
+        <section
+          v-else
+          class="calculator-sidebar-list"
+          :class="{ compact: isSidebarCollapsed }"
+          aria-labelledby="management-sidebar-title"
+        >
+          <div class="sidebar-section-heading">
+            <p class="eyebrow">{{ t('management.eyebrow') }}</p>
+            <h2 id="management-sidebar-title">{{ t('management.title') }}</h2>
+          </div>
+
+          <label class="sidebar-search-field">
+            <span>{{ t('management.searchLabel') }}</span>
+            <input
+              v-model="managementSearchTerm"
+              class="text-input"
+              type="search"
+              :placeholder="t('management.searchPlaceholder')"
+            />
+          </label>
+
+          <details
+            v-for="group in managementGroups"
+            :key="group.category"
+            class="sidebar-accordion"
+            open
+          >
+            <summary @click.stop>{{ group.label }}</summary>
+            <RouterLink
+              v-for="guide in group.guides"
+              :key="guide.id"
+              class="complaint-option"
+              :class="{ selected: guide.id === selectedManagementGuideId }"
+              :to="`/private/management/${guide.id}`"
+              :title="guide.title"
+            >
+              <ClipboardCheck class="nav-icon" :size="18" aria-hidden="true" />
+              <span class="nav-label">{{ guide.title }}</span>
             </RouterLink>
           </details>
         </section>

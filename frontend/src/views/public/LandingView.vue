@@ -1,8 +1,20 @@
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+
 import AppPreferences from '@/components/AppPreferences.vue'
 import { useI18n } from '@/composables/useI18n'
 
 const { t } = useI18n()
+const authState = ref<'loading' | 'authenticated' | 'anonymous'>('loading')
+const isAuthenticated = computed(() => authState.value === 'authenticated')
+
+onMounted(async () => {
+  const response = await fetch('/api/auth/me', {
+    credentials: 'include',
+  }).catch(() => null)
+
+  authState.value = response?.ok ? 'authenticated' : 'anonymous'
+})
 </script>
 
 <template>
@@ -11,12 +23,19 @@ const { t } = useI18n()
       <a class="brand" href="/">DxNavigator</a>
       <div class="nav-actions">
         <AppPreferences />
-        <RouterLink class="nav-link" to="/auth/login">
-          {{ t('auth.login') }}
-        </RouterLink>
-        <RouterLink class="primary-action compact-action" to="/auth/register">
-          {{ t('auth.register') }}
-        </RouterLink>
+        <template v-if="isAuthenticated">
+          <RouterLink class="primary-action compact-action" to="/private/complaints">
+            {{ t('landing.nav.dashboard') }}
+          </RouterLink>
+        </template>
+        <template v-else-if="authState === 'anonymous'">
+          <RouterLink class="nav-link" to="/auth/login">
+            {{ t('auth.login') }}
+          </RouterLink>
+          <RouterLink class="primary-action compact-action" to="/auth/register">
+            {{ t('auth.register') }}
+          </RouterLink>
+        </template>
       </div>
     </nav>
 
@@ -25,8 +44,8 @@ const { t } = useI18n()
         <p class="eyebrow">{{ t('landing.eyebrow') }}</p>
         <h1>DxNavigator</h1>
         <p>{{ t('landing.description') }}</p>
-        <RouterLink class="primary-action" to="/private/complaints/chest-pain">
-          {{ t('landing.action') }}
+        <RouterLink class="primary-action" to="/private/complaints">
+          {{ isAuthenticated ? t('landing.nav.dashboard') : t('landing.action') }}
         </RouterLink>
       </div>
 

@@ -458,9 +458,9 @@
               "key": "age",
               "label": "Age",
               "type": "text",
-              "placeholder": "Example: 28 years",
+              "placeholder": "Example: 28",
               "narrative": {
-                "suffix": "old"
+                "suffix": "years old"
               }
             },
             {
@@ -471,17 +471,16 @@
                 {
                   "label": "Female",
                   "value": "female",
-                  "narrative": "female patient"
+                  "narrative": "female"
                 },
                 {
                   "label": "Male",
                   "value": "male",
-                  "narrative": "male patient"
+                  "narrative": "male"
                 },
                 {
                   "label": "Other / not specified",
-                  "value": "other",
-                  "narrative": "patient"
+                  "value": "other"
                 }
               ]
             },
@@ -619,7 +618,6 @@
               "key": "oralTolerance",
               "label": "Able to tolerate oral intake",
               "type": "boolean",
-              "defaultValue": true,
               "narrative": {
                 "whenTrue": "able to tolerate oral intake"
               }
@@ -1162,9 +1160,9 @@
               "key": "age",
               "label": "Idade",
               "type": "text",
-              "placeholder": "Ex.: 28 anos",
+              "placeholder": "Ex.: 28",
               "narrative": {
-                "suffix": "de idade"
+                "suffix": "anos"
               }
             },
             {
@@ -1175,17 +1173,16 @@
                 {
                   "label": "Feminino",
                   "value": "female",
-                  "narrative": "paciente do sexo feminino"
+                  "narrative": "sexo feminino"
                 },
                 {
                   "label": "Masculino",
                   "value": "male",
-                  "narrative": "paciente do sexo masculino"
+                  "narrative": "sexo masculino"
                 },
                 {
                   "label": "Outro / não especificado",
-                  "value": "other",
-                  "narrative": "paciente"
+                  "value": "other"
                 }
               ]
             },
@@ -1323,7 +1320,6 @@
               "key": "oralTolerance",
               "label": "Tolera ingestão oral",
               "type": "boolean",
-              "defaultValue": true,
               "narrative": {
                 "whenTrue": "tolerando ingestão oral"
               }
@@ -3216,9 +3212,9 @@
               "key": "age",
               "label": "Age",
               "type": "text",
-              "placeholder": "Example: 35 years",
+              "placeholder": "Example: 35",
               "narrative": {
-                "suffix": "old"
+                "suffix": "years old"
               }
             },
             {
@@ -3229,17 +3225,16 @@
                 {
                   "label": "Female",
                   "value": "female",
-                  "narrative": "female patient"
+                  "narrative": "female"
                 },
                 {
                   "label": "Male",
                   "value": "male",
-                  "narrative": "male patient"
+                  "narrative": "male"
                 },
                 {
                   "label": "Other / not specified",
-                  "value": "other",
-                  "narrative": "patient"
+                  "value": "other"
                 }
               ]
             }
@@ -4054,7 +4049,6 @@
           "title": "Typical low-risk migraine",
           "description": "Classic episodic migraine without aura and no secondary headache red flags.",
           "answers": {
-            "age": "35 years",
             "sex": "female",
             "onsetTiming": "gradual",
             "timeToPeak": "more-than-1-hour",
@@ -4097,7 +4091,6 @@
           "title": "Migraine with typical aura",
           "description": "Migraine phenotype with visual aura lasting within the usual 5 to 60 minute window.",
           "answers": {
-            "age": "29 years",
             "sex": "female",
             "onsetTiming": "gradual",
             "timeToPeak": "more-than-1-hour",
@@ -4140,7 +4133,6 @@
           "title": "High-risk thunderclap headache",
           "description": "Sudden maximal onset with neurologic or mental status concern requiring urgent escalation.",
           "answers": {
-            "age": "52 years",
             "sex": "female",
             "onsetTiming": "sudden",
             "timeToPeak": "less-than-1-minute",
@@ -4177,7 +4169,6 @@
           "title": "Chronic migraine / medication overuse risk",
           "description": "Frequent headaches with high acute medication use and changed pattern.",
           "answers": {
-            "age": "48 years",
             "sex": "female",
             "onsetTiming": "gradual",
             "timeToPeak": "more-than-1-hour",
@@ -4238,9 +4229,9 @@
               "key": "age",
               "label": "Idade",
               "type": "text",
-              "placeholder": "Ex.: 35 anos",
+              "placeholder": "Ex.: 35",
               "narrative": {
-                "suffix": "de idade"
+                "suffix": "anos"
               }
             },
             {
@@ -4251,17 +4242,16 @@
                 {
                   "label": "Feminino",
                   "value": "female",
-                  "narrative": "paciente do sexo feminino"
+                  "narrative": "sexo feminino"
                 },
                 {
                   "label": "Masculino",
                   "value": "male",
-                  "narrative": "paciente do sexo masculino"
+                  "narrative": "sexo masculino"
                 },
                 {
                   "label": "Outro / nao especificado",
-                  "value": "other",
-                  "narrative": "paciente"
+                  "value": "other"
                 }
               ]
             }
@@ -5076,7 +5066,6 @@
           "title": "Enxaqueca tipica de baixo risco",
           "description": "Enxaqueca episodica classica sem aura e sem sinais de alerta para cefaleia secundaria.",
           "answers": {
-            "age": "35 years",
             "sex": "female",
             "onsetTiming": "gradual",
             "timeToPeak": "more-than-1-hour",
@@ -5119,7 +5108,6 @@
           "title": "Enxaqueca com aura tipica",
           "description": "Fenotipo migranoso com aura visual dentro da janela usual de 5 a 60 minutos.",
           "answers": {
-            "age": "29 years",
             "sex": "female",
             "onsetTiming": "gradual",
             "timeToPeak": "more-than-1-hour",
@@ -5162,7 +5150,6 @@
           "title": "Cefaleia em trovoada de alto risco",
           "description": "Inicio subitamente maximo com preocupacao neurologica ou de estado mental, exigindo escalonamento urgente.",
           "answers": {
-            "age": "52 years",
             "sex": "female",
             "onsetTiming": "sudden",
             "timeToPeak": "less-than-1-minute",
@@ -5199,7 +5186,6 @@
           "title": "Enxaqueca cronica / risco de uso excessivo",
           "description": "Cefaleias frequentes com alto uso de medicacao aguda e mudanca de padrao.",
           "answers": {
-            "age": "48 years",
             "sex": "female",
             "onsetTiming": "gradual",
             "timeToPeak": "more-than-1-hour",

@@ -3,6 +3,24 @@ import { computed, ref } from 'vue'
 import { defaultLocale, isLocale, locales, type Locale } from '@/i18n/locales'
 
 const localeStorageKey = 'dxnavigator-locale'
+const brazilTimeZones = new Set([
+  'America/Araguaina',
+  'America/Bahia',
+  'America/Belem',
+  'America/Boa_Vista',
+  'America/Campo_Grande',
+  'America/Cuiaba',
+  'America/Eirunepe',
+  'America/Fortaleza',
+  'America/Maceio',
+  'America/Manaus',
+  'America/Noronha',
+  'America/Porto_Velho',
+  'America/Recife',
+  'America/Rio_Branco',
+  'America/Santarem',
+  'America/Sao_Paulo',
+])
 
 export { defaultLocale, locales, type Locale }
 
@@ -49,6 +67,7 @@ const messages = {
     'auth.registerFailed': 'Could not create this account.',
     'auth.emailAlreadyRegistered': 'This email is already registered.',
     'landing.nav.openWorkspace': 'Open workspace',
+    'landing.nav.dashboard': 'Go to dashboard',
     'landing.eyebrow': 'Structured clinical workflows',
     'landing.description':
       'DxNavigator turns complaint-driven evaluations into interactive workflows that collect history, generate HPI text, and keep clinical guidance close while the visit unfolds.',
@@ -147,7 +166,6 @@ const messages = {
       'Curated bedside calculators for common clinical decisions. These are source-coded tools, not user-generated workflows.',
     'calculators.searchLabel': 'Search calculators',
     'calculators.searchPlaceholder': 'Search by name, category, or use case',
-    'calculators.curatedBadge': 'Curated',
     'calculators.sources': 'sources',
     'calculators.empty': 'No calculators match this search yet.',
     'calculators.notFoundTitle': 'Calculator not found',
@@ -157,6 +175,26 @@ const messages = {
     'calculators.sourcesTitle': 'Sources and notes',
     'calculators.sourcesDescription':
       'Calculator formulas and interpretations should be reviewed against the cited sources and local protocols.',
+    'management.nav': 'Management guides',
+    'management.eyebrow': 'Acute management',
+    'management.title': 'Management guides',
+    'management.description':
+      'Curated stepwise guides for protocolized emergency and critical care problems.',
+    'management.searchLabel': 'Search guides',
+    'management.searchPlaceholder': 'Search by condition, category, or action',
+    'management.sections': 'sections',
+    'management.empty': 'No management guides match this search yet.',
+    'management.notFoundTitle': 'Guide not found',
+    'management.notFoundDescription': 'This management guide is not available in the current registry.',
+    'management.backToList': 'Back to management guides',
+    'management.safetyEyebrow': 'Safety',
+    'management.pitfallsTitle': 'Common pitfalls',
+    'management.sourcesTitle': 'Sources and notes',
+    'management.sourcesDescription':
+      'Management guides should be reviewed against cited sources, local protocols, and specialty input.',
+    'management.severity.routine': 'Routine',
+    'management.severity.warning': 'Watch',
+    'management.severity.critical': 'Critical',
     'builder.editWorkflow': 'Edit workflow',
     'builder.eyebrow': 'Workflow authoring',
     'builder.title': 'Workflow builder',
@@ -455,6 +493,7 @@ const messages = {
     'auth.emailAlreadyRegistered': 'Este email já está cadastrado.',
 
     'landing.nav.openWorkspace': 'Abrir workspace',
+    'landing.nav.dashboard': 'Ir para o dashboard',
     'landing.eyebrow': 'Fluxos clínicos estruturados',
     'landing.description':
       'DxNavigator transforma avaliações guiadas por queixa em fluxos interativos que coletam história, geram texto de HMA e mantêm a orientação clínica por perto durante o atendimento.',
@@ -564,7 +603,6 @@ const messages = {
       'Calculadoras de beira-leito selecionadas para decisões clínicas comuns. São ferramentas mantidas em código, não fluxos criados por usuários.',
     'calculators.searchLabel': 'Buscar calculadoras',
     'calculators.searchPlaceholder': 'Busque por nome, categoria ou uso clínico',
-    'calculators.curatedBadge': 'Curada',
     'calculators.sources': 'fontes',
     'calculators.empty': 'Nenhuma calculadora corresponde a esta busca ainda.',
     'calculators.notFoundTitle': 'Calculadora não encontrada',
@@ -574,6 +612,26 @@ const messages = {
     'calculators.sourcesTitle': 'Fontes e observações',
     'calculators.sourcesDescription':
       'Fórmulas e interpretações devem ser revisadas contra as fontes citadas e protocolos locais.',
+    'management.nav': 'Guias de conduta',
+    'management.eyebrow': 'Manejo agudo',
+    'management.title': 'Guias de conduta',
+    'management.description':
+      'Guias passo a passo selecionados para problemas protocolizados de emergência e terapia intensiva.',
+    'management.searchLabel': 'Buscar guias',
+    'management.searchPlaceholder': 'Busque por condição, categoria ou ação',
+    'management.sections': 'seções',
+    'management.empty': 'Nenhum guia de conduta corresponde a esta busca ainda.',
+    'management.notFoundTitle': 'Guia não encontrado',
+    'management.notFoundDescription': 'Este guia de conduta não está disponível no registro atual.',
+    'management.backToList': 'Voltar para guias de conduta',
+    'management.safetyEyebrow': 'Segurança',
+    'management.pitfallsTitle': 'Erros comuns',
+    'management.sourcesTitle': 'Fontes e observações',
+    'management.sourcesDescription':
+      'Guias de conduta devem ser revisados contra as fontes citadas, protocolos locais e avaliação especializada.',
+    'management.severity.routine': 'Rotina',
+    'management.severity.warning': 'Atenção',
+    'management.severity.critical': 'Crítico',
     'builder.editWorkflow': 'Editar fluxo',
 
     'builder.eyebrow': 'Autoria de fluxos',
@@ -871,7 +929,24 @@ const getInitialLocale = (): Locale => {
 
   const storedLocale = window.localStorage.getItem(localeStorageKey)
 
-  return isLocale(storedLocale) ? storedLocale : defaultLocale
+  if (isLocale(storedLocale)) {
+    return storedLocale
+  }
+
+  const browserLocales = navigator.languages?.length ? navigator.languages : [navigator.language]
+  const hasBrazilLocale = browserLocales.some((browserLocale) => {
+    const localeParts = browserLocale.toLowerCase().split('-')
+
+    return localeParts[1] === 'br'
+  })
+
+  if (hasBrazilLocale) {
+    return 'pt-BR'
+  }
+
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+  return brazilTimeZones.has(timeZone) ? 'pt-BR' : defaultLocale
 }
 
 const locale = ref<Locale>(getInitialLocale())

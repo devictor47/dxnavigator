@@ -9,17 +9,17 @@ const ageField: TextField = {
   key: 'age',
   label: 'Idade',
   type: 'text',
-  placeholder: 'Ex.: 28 anos',
-  narrative: { suffix: 'de idade' },
+  placeholder: 'Ex.: 28',
+  narrative: { suffix: 'anos' },
 }
 const sexField: SelectField = {
   key: 'sex',
   label: 'Sexo',
   type: 'select',
   options: [
-    { label: 'Feminino', value: 'female', narrative: 'paciente do sexo feminino' },
-    { label: 'Masculino', value: 'male', narrative: 'paciente do sexo masculino' },
-    { label: 'Outro / não especificado', value: 'other', narrative: 'paciente' },
+    { label: 'Feminino', value: 'female', narrative: 'sexo feminino' },
+    { label: 'Masculino', value: 'male', narrative: 'sexo masculino' },
+    { label: 'Outro / não especificado', value: 'other' },
   ],
 }
 const durationField: TextField = {
@@ -300,7 +300,6 @@ const oralToleranceField: BooleanField = {
   key: 'oralTolerance',
   label: 'Tolera ingestão oral',
   type: 'boolean',
-  defaultValue: true,
   narrative: { whenTrue: 'tolerando ingestão oral' },
 }
 const hpiTemplate = `
@@ -543,7 +542,6 @@ export const utiModule: ClinicalWorkflow = {
         'Mulher jovem, não gestante, com sintomas urinários baixos clássicos e sem sinais de alerta.',
       answers: {
         sex: 'female',
-        age: '28 years',
         pregnancyStatus: 'not-pregnant',
         fever: false,
         flankPain: false,
@@ -573,7 +571,6 @@ export const utiModule: ClinicalWorkflow = {
         'Sintomas clássicos com ITU recente, uso recente de antibiótico, diabetes ou outro contexto de resistência.',
       answers: {
         sex: 'female',
-        age: '45 years',
         pregnancyStatus: 'not-pregnant',
         fever: false,
         flankPain: false,
@@ -602,7 +599,6 @@ export const utiModule: ClinicalWorkflow = {
       description: 'Febre e dor em flanco, com sintomas sistêmicos ou baixa tolerância oral.',
       answers: {
         sex: 'female',
-        age: '72 years',
         pregnancyStatus: 'not-pregnant',
         fever: true,
         temperature: '38.9 C',

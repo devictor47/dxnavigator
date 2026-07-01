@@ -8,6 +8,8 @@ import WorkflowBuilderView from '@/views/private/WorkflowBuilderView.vue'
 import WorkflowManageView from '@/views/private/WorkflowManageView.vue'
 import CalculatorIndexView from '@/views/private/CalculatorIndexView.vue'
 import CalculatorDetailView from '@/views/private/CalculatorDetailView.vue'
+import ManagementIndexView from '@/views/private/ManagementIndexView.vue'
+import ManagementDetailView from '@/views/private/ManagementDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -65,6 +67,16 @@ const router = createRouter({
       path: '/private/calculators/:calculatorId',
       name: 'calculator-detail',
       component: CalculatorDetailView,
+    },
+    {
+      path: '/private/management',
+      name: 'management-index',
+      component: ManagementIndexView,
+    },
+    {
+      path: '/private/management/:guideId',
+      name: 'management-detail',
+      component: ManagementDetailView,
     },
   ],
 })

@@ -61,7 +61,6 @@ const filteredCalculators = computed(() => {
               <p class="eyebrow">{{ calculatorCategoryLabels[locale][calculator.category] }}</p>
               <h2>{{ calculator.title }}</h2>
             </div>
-            <span class="field-type-chip">{{ t('calculators.curatedBadge') }}</span>
           </div>
 
           <p>{{ calculator.description }}</p>

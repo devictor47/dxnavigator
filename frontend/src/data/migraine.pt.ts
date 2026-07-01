@@ -9,17 +9,17 @@ const ageField: TextField = {
   key: 'age',
   label: 'Idade',
   type: 'text',
-  placeholder: 'Ex.: 35 anos',
-  narrative: { suffix: 'de idade' },
+  placeholder: 'Ex.: 35',
+  narrative: { suffix: 'anos' },
 }
 const sexField: SelectField = {
   key: 'sex',
   label: 'Sexo',
   type: 'select',
   options: [
-    { label: 'Feminino', value: 'female', narrative: 'paciente do sexo feminino' },
-    { label: 'Masculino', value: 'male', narrative: 'paciente do sexo masculino' },
-    { label: 'Outro / nao especificado', value: 'other', narrative: 'paciente' },
+    { label: 'Feminino', value: 'female', narrative: 'sexo feminino' },
+    { label: 'Masculino', value: 'male', narrative: 'sexo masculino' },
+    { label: 'Outro / nao especificado', value: 'other' },
   ],
 }
 const onsetTimingField: SelectField = {
@@ -684,7 +684,6 @@ export const migraineModule: ClinicalWorkflow = {
       description:
         'Enxaqueca episodica classica sem aura e sem sinais de alerta para cefaleia secundaria.',
       answers: {
-        age: '35 years',
         sex: 'female',
         onsetTiming: 'gradual',
         timeToPeak: 'more-than-1-hour',
@@ -724,7 +723,6 @@ export const migraineModule: ClinicalWorkflow = {
       title: 'Enxaqueca com aura tipica',
       description: 'Fenotipo migranoso com aura visual dentro da janela usual de 5 a 60 minutos.',
       answers: {
-        age: '29 years',
         sex: 'female',
         onsetTiming: 'gradual',
         timeToPeak: 'more-than-1-hour',
@@ -763,7 +761,6 @@ export const migraineModule: ClinicalWorkflow = {
       description:
         'Inicio subitamente maximo com preocupacao neurologica ou de estado mental, exigindo escalonamento urgente.',
       answers: {
-        age: '52 years',
         sex: 'female',
         onsetTiming: 'sudden',
         timeToPeak: 'less-than-1-minute',
@@ -798,7 +795,6 @@ export const migraineModule: ClinicalWorkflow = {
       title: 'Enxaqueca cronica / risco de uso excessivo',
       description: 'Cefaleias frequentes com alto uso de medicacao aguda e mudanca de padrao.',
       answers: {
-        age: '48 years',
         sex: 'female',
         onsetTiming: 'gradual',
         timeToPeak: 'more-than-1-hour',

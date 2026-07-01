@@ -1250,3 +1250,59 @@ Sources are an array so a calculator can cite original derivation papers, valida
 Calculators can add clinical value quickly without introducing new backend storage or marketplace complexity.
 
 The first implementations use HEART Score, Wells Criteria for DVT and PE, PERC, CURB-65, CRB-65, Alvarado Score, Pediatric Appendicitis Score, qSOFA, Glasgow Coma Scale, NIH Stroke Scale, Canadian CT Head Rule, Tokyo Criteria for Acute Cholecystitis, and an infusion dose converter as test calculators because they are compact, clinically familiar, and have auditable scoring, diagnostic, or conversion models.
+
+## ADR 020: Management Guides Are Curated Stepwise References
+
+### Status
+
+Accepted.
+
+### Context
+
+Some emergency and critical care problems are highly protocolized but are not primarily diagnostic workflows or calculators. Examples include diabetic ketoacidosis, status epilepticus, hyperkalemia, hypokalemia, severe asthma, sepsis bundles, and anaphylaxis.
+
+These problems benefit from a stepwise bedside reference:
+
+```text
+recognize -> stabilize -> confirm -> treat -> monitor -> transition/disposition
+```
+
+### Decision
+
+Management guides are a separate private app section:
+
+```text
+/private/management
+/private/management/:guideId
+```
+
+They are frontend-only curated content for now. Each guide is authored per language, like calculator content, and includes:
+
+```text
+title
+description
+category
+sections
+pitfalls
+sources
+```
+
+The first management guide is diabetic ketoacidosis because it has a well-defined emergency treatment sequence and high value in ER/ICU use.
+
+### Rules
+
+- Management guides are not calculators.
+- Management guides should describe structured approach and common pitfalls, not replace clinical judgment.
+- Medication doses, thresholds, and transitions should be sourced and worded cautiously.
+- Guides should cite current sources and remind users to follow local protocols.
+- Do not make management guides user-authored until there is a clinical review and versioning process.
+
+### Consequences
+
+DxNavigator now has three distinct clinical tool types:
+
+```text
+Workflows          -> structured data collection and note generation
+Calculators        -> score/formula/conversion tools
+Management guides  -> stepwise protocol-style references
+```

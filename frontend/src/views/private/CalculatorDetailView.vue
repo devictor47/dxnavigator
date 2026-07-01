@@ -35,7 +35,7 @@ const calculator = computed(() => getClinicalCalculatorById(route.params.calcula
 
         <component :is="calculator.component" :calculator="calculator" />
 
-        <section class="form-card calculator-sources" aria-labelledby="calculator-sources-title">
+        <section class="calculator-sources" aria-labelledby="calculator-sources-title">
           <div class="section-heading">
             <p class="eyebrow">{{ t('calculators.transparency') }}</p>
             <h2 id="calculator-sources-title">{{ t('calculators.sourcesTitle') }}</h2>

@@ -9,17 +9,17 @@ const ageField: TextField = {
   key: 'age',
   label: 'Age',
   type: 'text',
-  placeholder: 'Example: 28 years',
-  narrative: { suffix: 'old' },
+  placeholder: 'Example: 28',
+  narrative: { suffix: 'years old' },
 }
 const sexField: SelectField = {
   key: 'sex',
   label: 'Sex',
   type: 'select',
   options: [
-    { label: 'Female', value: 'female', narrative: 'female patient' },
-    { label: 'Male', value: 'male', narrative: 'male patient' },
-    { label: 'Other / not specified', value: 'other', narrative: 'patient' },
+    { label: 'Female', value: 'female', narrative: 'female' },
+    { label: 'Male', value: 'male', narrative: 'male' },
+    { label: 'Other / not specified', value: 'other' },
   ],
 }
 const durationField: TextField = {
@@ -292,7 +292,6 @@ const oralToleranceField: BooleanField = {
   key: 'oralTolerance',
   label: 'Able to tolerate oral intake',
   type: 'boolean',
-  defaultValue: true,
   narrative: { whenTrue: 'able to tolerate oral intake' },
 }
 const hpiTemplate = `
@@ -533,7 +532,6 @@ export const utiModule: ClinicalWorkflow = {
       description: 'Young nonpregnant woman with classic lower urinary symptoms and no red flags.',
       answers: {
         sex: 'female',
-        age: '28 years',
         pregnancyStatus: 'not-pregnant',
         fever: false,
         flankPain: false,
@@ -563,7 +561,6 @@ export const utiModule: ClinicalWorkflow = {
         'Classic symptoms with recent UTI, antibiotics, diabetes, or other resistance context.',
       answers: {
         sex: 'female',
-        age: '45 years',
         pregnancyStatus: 'not-pregnant',
         fever: false,
         flankPain: false,
@@ -592,7 +589,6 @@ export const utiModule: ClinicalWorkflow = {
       description: 'Fever and flank pain with systemic symptoms or poor oral tolerance.',
       answers: {
         sex: 'female',
-        age: '72 years',
         pregnancyStatus: 'not-pregnant',
         fever: true,
         temperature: '38.9 C',
