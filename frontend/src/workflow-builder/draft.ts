@@ -1,5 +1,8 @@
 import type { ModuleField } from '@/data/workflow'
 
+// Draft objects are the builder's editable working state. They intentionally
+// include UI-only metadata such as uid and "was edited" flags that should not
+// be persisted as workflow schema.
 export type BuilderFieldType = ModuleField['type']
 export type DisplayEqualsKind = 'string' | 'boolean' | 'stringArray'
 export type BuilderMode = 'edit' | 'preview' | 'json'

@@ -10,6 +10,8 @@ import type {
   DraftWorkflow,
 } from '@/workflow-builder/draft'
 
+// Preview conversion is the single bridge from builder draft state to the
+// persisted ClinicalWorkflow schema used by rendering, export, and API saves.
 export const splitLines = (value: string): string[] =>
   value
     .split('\n')

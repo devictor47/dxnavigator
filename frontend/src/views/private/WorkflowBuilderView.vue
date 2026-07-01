@@ -22,7 +22,6 @@ import { locales, type Locale } from '@/i18n/locales'
 import {
   camelize,
   createDraftClinicalItem,
-  createDraftDisplayIf,
   createDraftField,
   createDraftGuide,
   createDraftOption,
@@ -35,7 +34,6 @@ import {
   type BuilderFieldType,
   type BuilderMode,
   type DraftClinicalItem,
-  type DraftDisplayIf,
   type DraftField,
   type DraftGuide,
   type DraftOption,
@@ -44,11 +42,10 @@ import {
   type DraftSourceFigure,
   type DraftWorkflow,
 } from '@/workflow-builder/draft'
+import { importWorkflowDraft } from '@/workflow-builder/import'
 import {
   createWorkflowPreview,
-  isRecord,
   parsePresetAnswers,
-  splitLines,
 } from '@/workflow-builder/preview'
 
 const { locale: appLocale, t } = useI18n()
@@ -262,189 +259,12 @@ const removePreset = (preset: DraftPreset): void => {
   draft.presets = draft.presets.filter((currentPreset) => currentPreset.uid !== preset.uid)
 }
 
-const readWorkflowText = (value: unknown): string => (typeof value === 'string' ? value : '')
-
-const readFieldType = (value: unknown): BuilderFieldType => {
-  return fieldTypes.includes(value as BuilderFieldType) ? (value as BuilderFieldType) : 'text'
-}
-
-const readStringArray = (value: unknown): string[] => {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string')
-    : []
-}
-
-const joinLines = (value: unknown): string => readStringArray(value).join('\n')
-
-const readJsonObjectText = (value: unknown): string => {
-  return isRecord(value) ? JSON.stringify(value, null, 2) : '{}'
-}
-
-const readClinicalItems = (value: unknown): DraftClinicalItem[] => {
-  return (Array.isArray(value) ? value : [])
-    .filter(isRecord)
-    .map((item) =>
-      createDraftClinicalItem(readWorkflowText(item.title), readWorkflowText(item.description)),
-    )
-}
-
-const readGuides = (value: unknown): DraftGuide[] => {
-  return (Array.isArray(value) ? value : []).filter(isRecord).map((item) => ({
-    uid: createDraftUid(),
-    title: readWorkflowText(item.title),
-    description: readWorkflowText(item.description),
-    criteriaText: joinLines(item.criteria),
-    actionsText: joinLines(item.actions),
-  }))
-}
-
-const readSourceFigures = (value: unknown): DraftSourceFigure[] => {
-  return (Array.isArray(value) ? value : []).filter(isRecord).map((item) => ({
-    uid: createDraftUid(),
-    title: readWorkflowText(item.title),
-    source: readWorkflowText(item.source),
-    sourceUrl: readWorkflowText(item.sourceUrl),
-    citation: readWorkflowText(item.citation),
-    notes: readWorkflowText(item.notes),
-    imageUrl: readWorkflowText(item.imageUrl),
-    altText: readWorkflowText(item.altText),
-  }))
-}
-
-const readPresets = (value: unknown): DraftPreset[] => {
-  return (Array.isArray(value) ? value : []).filter(isRecord).map((item) => ({
-    uid: createDraftUid(),
-    id: readWorkflowText(item.id),
-    title: readWorkflowText(item.title),
-    description: readWorkflowText(item.description),
-    answersJson: readJsonObjectText(item.answers),
-  }))
-}
-
-const readDisplayIf = (value: unknown): DraftDisplayIf => {
-  const displayIf = createDraftDisplayIf()
-
-  if (!isRecord(value)) {
-    return displayIf
-  }
-
-  displayIf.enabled = true
-  displayIf.fieldKey = readWorkflowText(value.fieldKey)
-
-  if (Array.isArray(value.equals)) {
-    displayIf.equalsKind = 'stringArray'
-    displayIf.equalsArrayText = readStringArray(value.equals).join(', ')
-  } else if (typeof value.equals === 'boolean') {
-    displayIf.equalsKind = 'boolean'
-    displayIf.equalsBoolean = value.equals
-  } else if (typeof value.equals === 'string') {
-    displayIf.equalsKind = 'string'
-    displayIf.equalsString = value.equals
-  }
-
-  return displayIf
-}
-
 const importWorkflow = (workflow: unknown): void => {
-  if (!isRecord(workflow)) {
-    throw new Error(t('builder.importInvalid'))
-  }
+  const importedWorkflow = importWorkflowDraft(workflow, availableLocales)
 
-  if (!availableLocales.includes(workflow.language as Locale)) {
-    throw new Error(t('builder.importInvalid'))
-  }
-
-  const detectedLocale = workflow.language as Locale
-  authoringLocale.value = detectedLocale
-  draft.id = typeof workflow.id === 'string' ? workflow.id : 'imported-workflow'
-  draft.slug = readWorkflowText(workflow.slug)
-  draft.title = readWorkflowText(workflow.title)
-  draft.description = readWorkflowText(workflow.description)
-  draft.overview = readWorkflowText(workflow.overview)
-  draft.hpiTemplate = readWorkflowText(workflow.hpiTemplate)
-  draft.idWasEdited = true
-  draft.sections = []
-  draft.redFlags = readClinicalItems(workflow.redFlags)
-  draft.differentials = readClinicalItems(workflow.differentials)
-  draft.workup = readClinicalItems(workflow.workup)
-  draft.quickGuides = readGuides(workflow.quickGuides)
-  draft.sourceFigures = readSourceFigures(workflow.sourceFigures)
-  draft.presets = readPresets(workflow.presets)
+  authoringLocale.value = importedWorkflow.locale
+  Object.assign(draft, importedWorkflow.draft)
   expandedFieldUid.value = null
-
-  for (const sectionValue of Array.isArray(workflow.sections) ? workflow.sections : []) {
-    if (!isRecord(sectionValue)) {
-      continue
-    }
-
-    const section: DraftSection = {
-      uid: createDraftUid(),
-      id: typeof sectionValue.id === 'string' ? sectionValue.id : '',
-      title: readWorkflowText(sectionValue.title),
-      description: readWorkflowText(sectionValue.description),
-      idWasEdited: true,
-      fields: [],
-    }
-
-    for (const fieldValue of Array.isArray(sectionValue.fields) ? sectionValue.fields : []) {
-      if (!isRecord(fieldValue)) {
-        continue
-      }
-
-      const field = createDraftField(
-        readWorkflowText(fieldValue.label),
-        readFieldType(fieldValue.type),
-        typeof fieldValue.key === 'string' ? fieldValue.key : '',
-      )
-      field.keyWasEdited = true
-      field.required = fieldValue.required === true
-      field.helperText = readWorkflowText(fieldValue.helperText)
-      field.displayIf = readDisplayIf(fieldValue.displayIf)
-
-      if (field.type === 'text') {
-        field.placeholder = readWorkflowText(fieldValue.placeholder)
-        field.defaultText =
-          typeof fieldValue.defaultValue === 'string' ? fieldValue.defaultValue : ''
-
-        if (isRecord(fieldValue.narrative)) {
-          field.narrative.prefix = readWorkflowText(fieldValue.narrative.prefix)
-          field.narrative.suffix = readWorkflowText(fieldValue.narrative.suffix)
-        }
-      }
-
-      if (field.type === 'boolean') {
-        field.defaultBoolean = fieldValue.defaultValue === true
-
-        if (isRecord(fieldValue.narrative)) {
-          field.narrative.whenTrue = readWorkflowText(fieldValue.narrative.whenTrue)
-          field.narrative.whenFalse = readWorkflowText(fieldValue.narrative.whenFalse)
-        }
-      }
-
-      if (field.type === 'select' || field.type === 'multiselect') {
-        field.options = (Array.isArray(fieldValue.options) ? fieldValue.options : [])
-          .filter(isRecord)
-          .map((optionValue) => ({
-            uid: createDraftUid(),
-            value: typeof optionValue.value === 'string' ? optionValue.value : '',
-            label: readWorkflowText(optionValue.label),
-            narrative: readWorkflowText(optionValue.narrative),
-            valueWasEdited: true,
-          }))
-
-        if (field.type === 'select') {
-          field.defaultText =
-            typeof fieldValue.defaultValue === 'string' ? fieldValue.defaultValue : ''
-        } else {
-          field.defaultMultiselect = readStringArray(fieldValue.defaultValue)
-        }
-      }
-
-      section.fields.push(field)
-    }
-
-    draft.sections.push(section)
-  }
 
   for (const sectionId of Object.keys(newFieldBySection)) {
     delete newFieldBySection[sectionId]
