@@ -45,8 +45,8 @@ import {
 import { importWorkflowDraft } from '@/workflow-builder/import'
 import {
   createWorkflowPreview,
-  parsePresetAnswers,
 } from '@/workflow-builder/preview'
+import { validateWorkflowDraft } from '@/workflow-builder/validation'
 
 const { locale: appLocale, t } = useI18n()
 const { notify } = useNotifications()
@@ -433,76 +433,16 @@ const insertTemplateToken = async (token: string): Promise<void> => {
   textarea.setSelectionRange(selectionStart + token.length, selectionStart + token.length)
 }
 
-const findDuplicates = (values: string[]): string[] => {
-  const seen = new Set<string>()
-  const duplicates = new Set<string>()
-
-  for (const value of values.map((item) => item.trim()).filter(Boolean)) {
-    if (seen.has(value)) {
-      duplicates.add(value)
-    }
-
-    seen.add(value)
-  }
-
-  return [...duplicates]
-}
-
-const validationMessages = computed(() => {
-  const messages: string[] = []
-  const duplicateSectionIds = findDuplicates(draft.sections.map((section) => section.id))
-  const duplicateFieldKeys = findDuplicates(
-    draft.sections.flatMap((section) => section.fields.map((field) => field.key)),
-  )
-
-  if (duplicateSectionIds.length > 0) {
-    messages.push(
-      `${t('builder.validationDuplicateSectionIds')}: ${duplicateSectionIds.join(', ')}`,
-    )
-  }
-
-  if (duplicateFieldKeys.length > 0) {
-    messages.push(`${t('builder.validationDuplicateFieldKeys')}: ${duplicateFieldKeys.join(', ')}`)
-  }
-
-  for (const section of draft.sections) {
-    for (const field of section.fields) {
-      if (field.displayIf.enabled && !allFieldKeys.value.includes(field.displayIf.fieldKey)) {
-        messages.push(
-          `${t('builder.validationMissingDisplayIfField')} (${field.label || field.key})`,
-        )
-      }
-
-      if (field.type !== 'select' && field.type !== 'multiselect') {
-        continue
-      }
-
-      const duplicateOptionValues = findDuplicates(field.options.map((option) => option.value))
-
-      if (duplicateOptionValues.length > 0) {
-        messages.push(
-          `${t('builder.validationDuplicateOptionValues')} (${field.label || field.key}): ${duplicateOptionValues.join(', ')}`,
-        )
-      }
-    }
-  }
-
-  const duplicatePresetIds = findDuplicates(draft.presets.map((preset) => preset.id))
-
-  if (duplicatePresetIds.length > 0) {
-    messages.push(`${t('builder.validationDuplicatePresetIds')}: ${duplicatePresetIds.join(', ')}`)
-  }
-
-  for (const preset of draft.presets) {
-    try {
-      parsePresetAnswers(preset)
-    } catch {
-      messages.push(`${t('builder.validationInvalidPresetJson')} (${preset.title || preset.id})`)
-    }
-  }
-
-  return messages
-})
+const validationMessages = computed(() =>
+  validateWorkflowDraft(draft, {
+    duplicateSectionIds: t('builder.validationDuplicateSectionIds'),
+    duplicateFieldKeys: t('builder.validationDuplicateFieldKeys'),
+    missingDisplayIfField: t('builder.validationMissingDisplayIfField'),
+    duplicateOptionValues: t('builder.validationDuplicateOptionValues'),
+    duplicatePresetIds: t('builder.validationDuplicatePresetIds'),
+    invalidPresetJson: t('builder.validationInvalidPresetJson'),
+  }),
+)
 </script>
 
 <template>
