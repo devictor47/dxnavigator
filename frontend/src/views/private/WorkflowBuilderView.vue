@@ -46,8 +46,11 @@ import { importWorkflowDraft } from '@/workflow-builder/import'
 import {
   createWorkflowPreview,
 } from '@/workflow-builder/preview'
+import { getAllFieldKeys, getTemplateFieldTokens } from '@/workflow-builder/selectors'
 import { validateWorkflowDraft } from '@/workflow-builder/validation'
 
+// This view coordinates the builder experience. Pure schema mapping, import,
+// validation, and derived selectors live under src/workflow-builder.
 const { locale: appLocale, t } = useI18n()
 const { notify } = useNotifications()
 const route = useRoute()
@@ -400,19 +403,10 @@ watch(workflowPreview, (workflow) => {
 })
 
 const allFieldKeys = computed(() =>
-  draft.sections.flatMap((section) => section.fields.map((field) => field.key).filter(Boolean)),
+  getAllFieldKeys(draft),
 )
 
-const availableTemplateFields = computed(() =>
-  draft.sections.flatMap((section) =>
-    section.fields.map((field) => ({
-      key: field.key,
-      label: field.label || field.key,
-      token:
-        field.type === 'multiselect' ? `{{ ${field.key} | list: locale }}` : `{{ ${field.key} }}`,
-    })),
-  ),
-)
+const availableTemplateFields = computed(() => getTemplateFieldTokens(draft))
 
 const insertTemplateToken = async (token: string): Promise<void> => {
   const textarea = hpiTemplateInput.value
