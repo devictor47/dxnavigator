@@ -16,116 +16,40 @@ import { useNotifications } from '@/composables/useNotifications'
 import {
   createWorkflowSession,
   type ClinicalWorkflow,
-  type ModuleAnswers,
-  type ModuleField,
-  type WorkflowPreset,
   type WorkflowSession,
 } from '@/data/workflow'
 import { locales, type Locale } from '@/i18n/locales'
-
-type BuilderFieldType = ModuleField['type']
-type DisplayEqualsKind = 'string' | 'boolean' | 'stringArray'
-type BuilderMode = 'edit' | 'preview' | 'json'
-
-type DraftClinicalItem = {
-  uid: string
-  title: string
-  description: string
-}
-
-type DraftGuide = {
-  uid: string
-  title: string
-  description: string
-  criteriaText: string
-  actionsText: string
-}
-
-type DraftSourceFigure = {
-  uid: string
-  title: string
-  source: string
-  sourceUrl: string
-  citation: string
-  notes: string
-  imageUrl: string
-  altText: string
-}
-
-type DraftPreset = {
-  uid: string
-  id: string
-  title: string
-  description: string
-  answersJson: string
-}
-
-type DraftDisplayIf = {
-  enabled: boolean
-  fieldKey: string
-  equalsKind: DisplayEqualsKind
-  equalsString: string
-  equalsBoolean: boolean
-  equalsArrayText: string
-}
-
-type DraftOption = {
-  uid: string
-  value: string
-  label: string
-  narrative: string
-  valueWasEdited: boolean
-}
-
-type DraftNarrative = {
-  prefix: string
-  suffix: string
-  whenTrue: string
-  whenFalse: string
-}
-
-type DraftField = {
-  uid: string
-  key: string
-  label: string
-  type: BuilderFieldType
-  required: boolean
-  helperText: string
-  placeholder: string
-  defaultBoolean: boolean
-  defaultText: string
-  defaultMultiselect: string[]
-  displayIf: DraftDisplayIf
-  narrative: DraftNarrative
-  options: DraftOption[]
-  keyWasEdited: boolean
-}
-
-type DraftSection = {
-  uid: string
-  id: string
-  title: string
-  description: string
-  idWasEdited: boolean
-  fields: DraftField[]
-}
-
-type DraftWorkflow = {
-  id: string
-  title: string
-  slug: string
-  description: string
-  overview: string
-  hpiTemplate: string
-  idWasEdited: boolean
-  sections: DraftSection[]
-  redFlags: DraftClinicalItem[]
-  differentials: DraftClinicalItem[]
-  workup: DraftClinicalItem[]
-  quickGuides: DraftGuide[]
-  sourceFigures: DraftSourceFigure[]
-  presets: DraftPreset[]
-}
+import {
+  camelize,
+  createDraftClinicalItem,
+  createDraftDisplayIf,
+  createDraftField,
+  createDraftGuide,
+  createDraftOption,
+  createDraftPreset,
+  createDraftSourceFigure,
+  createDraftUid,
+  createEmptyDraftWorkflow,
+  fieldTypes,
+  slugify,
+  type BuilderFieldType,
+  type BuilderMode,
+  type DraftClinicalItem,
+  type DraftDisplayIf,
+  type DraftField,
+  type DraftGuide,
+  type DraftOption,
+  type DraftPreset,
+  type DraftSection,
+  type DraftSourceFigure,
+  type DraftWorkflow,
+} from '@/workflow-builder/draft'
+import {
+  createWorkflowPreview,
+  isRecord,
+  parsePresetAnswers,
+  splitLines,
+} from '@/workflow-builder/preview'
 
 const { locale: appLocale, t } = useI18n()
 const { notify } = useNotifications()
@@ -133,22 +57,7 @@ const route = useRoute()
 const authoringLocale = ref<Locale>(appLocale.value)
 const availableLocales = Object.keys(locales) as Locale[]
 
-const draft = reactive<DraftWorkflow>({
-  id: '',
-  title: '',
-  slug: '',
-  description: '',
-  overview: '',
-  hpiTemplate: '',
-  idWasEdited: false,
-  sections: [],
-  redFlags: [],
-  differentials: [],
-  workup: [],
-  quickGuides: [],
-  sourceFigures: [],
-  presets: [],
-})
+const draft = reactive<DraftWorkflow>(createEmptyDraftWorkflow())
 
 const newSectionTitle = reactive({
   value: '',
@@ -163,9 +72,6 @@ const activeBuilderMode = ref<BuilderMode>('edit')
 const isSavingWorkflow = ref(false)
 const savedWorkflowId = ref<number | null>(null)
 
-const fieldTypes: BuilderFieldType[] = ['text', 'boolean', 'select', 'multiselect']
-let nextDraftUid = 1
-
 const fieldTypeLabel = (fieldType: BuilderFieldType): string => {
   const labels: Record<BuilderFieldType, string> = {
     text: t('builder.fieldTypeText'),
@@ -176,107 +82,6 @@ const fieldTypeLabel = (fieldType: BuilderFieldType): string => {
 
   return labels[fieldType]
 }
-
-const createDraftUid = (): string => {
-  const uid = `draft-${nextDraftUid}`
-  nextDraftUid += 1
-
-  return uid
-}
-
-const stripAccents = (value: string): string => {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-}
-
-const slugify = (value: string): string => {
-  return stripAccents(value)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
-const camelize = (value: string): string => {
-  const slug = slugify(value)
-
-  return slug.replace(/-([a-z0-9])/g, (_, character: string) => character.toUpperCase())
-}
-
-const createDraftOption = (label = ''): DraftOption => ({
-  uid: createDraftUid(),
-  value: slugify(label),
-  label,
-  narrative: label.toLowerCase(),
-  valueWasEdited: false,
-})
-
-const createDraftDisplayIf = (): DraftDisplayIf => ({
-  enabled: false,
-  fieldKey: '',
-  equalsKind: 'boolean',
-  equalsString: '',
-  equalsBoolean: true,
-  equalsArrayText: '',
-})
-
-const createDraftField = (
-  label = '',
-  type: BuilderFieldType = 'text',
-  key = camelize(label),
-): DraftField => ({
-  uid: createDraftUid(),
-  key,
-  label,
-  type,
-  required: false,
-  helperText: '',
-  placeholder: '',
-  defaultBoolean: false,
-  defaultText: '',
-  defaultMultiselect: [],
-  displayIf: createDraftDisplayIf(),
-  narrative: {
-    prefix: '',
-    suffix: '',
-    whenTrue: '',
-    whenFalse: '',
-  },
-  options: [],
-  keyWasEdited: false,
-})
-
-const createDraftClinicalItem = (title = '', description = ''): DraftClinicalItem => ({
-  uid: createDraftUid(),
-  title,
-  description,
-})
-
-const createDraftGuide = (): DraftGuide => ({
-  uid: createDraftUid(),
-  title: '',
-  description: '',
-  criteriaText: '',
-  actionsText: '',
-})
-
-const createDraftSourceFigure = (): DraftSourceFigure => ({
-  uid: createDraftUid(),
-  title: '',
-  source: '',
-  sourceUrl: '',
-  citation: '',
-  notes: '',
-  imageUrl: '',
-  altText: '',
-})
-
-const createDraftPreset = (): DraftPreset => ({
-  uid: createDraftUid(),
-  id: '',
-  title: '',
-  description: '',
-  answersJson: '{}',
-})
 
 const getNewField = (sectionId: string): DraftField => {
   newFieldBySection[sectionId] ??= createDraftField()
@@ -457,10 +262,6 @@ const removePreset = (preset: DraftPreset): void => {
   draft.presets = draft.presets.filter((currentPreset) => currentPreset.uid !== preset.uid)
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
 const readWorkflowText = (value: unknown): string => (typeof value === 'string' ? value : '')
 
 const readFieldType = (value: unknown): BuilderFieldType => {
@@ -472,28 +273,6 @@ const readStringArray = (value: unknown): string[] => {
     ? value.filter((item): item is string => typeof item === 'string')
     : []
 }
-
-const isModuleAnswerValue = (value: unknown): value is ModuleAnswers[string] => {
-  return (
-    typeof value === 'string' ||
-    typeof value === 'boolean' ||
-    (Array.isArray(value) && value.every((item) => typeof item === 'string'))
-  )
-}
-
-const readModuleAnswers = (value: Record<string, unknown>): ModuleAnswers => {
-  return Object.fromEntries(
-    Object.entries(value).filter((entry): entry is [string, ModuleAnswers[string]] =>
-      isModuleAnswerValue(entry[1]),
-    ),
-  )
-}
-
-const splitLines = (value: string): string[] =>
-  value
-    .split('\n')
-    .map((item) => item.trim())
-    .filter(Boolean)
 
 const joinLines = (value: unknown): string => readStringArray(value).join('\n')
 
@@ -788,159 +567,9 @@ const importWorkflowJson = async (event: Event): Promise<void> => {
   }
 }
 
-const createDisplayIfPreview = (displayIf: DraftDisplayIf) => {
-  if (!displayIf.enabled || !displayIf.fieldKey.trim()) {
-    return undefined
-  }
-
-  if (displayIf.equalsKind === 'boolean') {
-    return {
-      fieldKey: displayIf.fieldKey,
-      equals: displayIf.equalsBoolean,
-    }
-  }
-
-  if (displayIf.equalsKind === 'stringArray') {
-    return {
-      fieldKey: displayIf.fieldKey,
-      equals: splitLines(displayIf.equalsArrayText.replaceAll(',', '\n')),
-    }
-  }
-
-  return {
-    fieldKey: displayIf.fieldKey,
-    equals: displayIf.equalsString,
-  }
-}
-
-const createFieldPreview = (field: DraftField) => ({
-  key: field.key,
-  label: field.label,
-  type: field.type,
-  ...(field.required ? { required: true } : {}),
-  ...(field.helperText ? { helperText: field.helperText } : {}),
-  ...(createDisplayIfPreview(field.displayIf)
-    ? { displayIf: createDisplayIfPreview(field.displayIf) }
-    : {}),
-  ...(field.type === 'text' && field.placeholder ? { placeholder: field.placeholder } : {}),
-  ...(field.type === 'text' && field.defaultText ? { defaultValue: field.defaultText } : {}),
-  ...(field.type === 'text' && (field.narrative.prefix || field.narrative.suffix)
-    ? {
-        narrative: {
-          ...(field.narrative.prefix ? { prefix: field.narrative.prefix } : {}),
-          ...(field.narrative.suffix ? { suffix: field.narrative.suffix } : {}),
-        },
-      }
-    : {}),
-  ...(field.type === 'boolean'
-    ? {
-        defaultValue: field.defaultBoolean,
-        ...(field.narrative.whenTrue || field.narrative.whenFalse
-          ? {
-              narrative: {
-                ...(field.narrative.whenTrue ? { whenTrue: field.narrative.whenTrue } : {}),
-                ...(field.narrative.whenFalse ? { whenFalse: field.narrative.whenFalse } : {}),
-              },
-            }
-          : {}),
-      }
-    : {}),
-  ...(field.type === 'select'
-    ? {
-        options: field.options.map((option) => ({
-          label: option.label,
-          value: option.value,
-          ...(option.narrative ? { narrative: option.narrative } : {}),
-        })),
-        ...(field.defaultText ? { defaultValue: field.defaultText } : {}),
-      }
-    : {}),
-  ...(field.type === 'multiselect'
-    ? {
-        options: field.options.map((option) => ({
-          label: option.label,
-          value: option.value,
-          ...(option.narrative ? { narrative: option.narrative } : {}),
-        })),
-        defaultValue: field.defaultMultiselect,
-      }
-    : {}),
-})
-
-const createClinicalItemPreview = (item: DraftClinicalItem) => ({
-  title: item.title,
-  ...(item.description ? { description: item.description } : {}),
-})
-
-const createGuidePreview = (guide: DraftGuide) => ({
-  title: guide.title,
-  ...(guide.description ? { description: guide.description } : {}),
-  ...(splitLines(guide.criteriaText).length > 0
-    ? { criteria: splitLines(guide.criteriaText) }
-    : {}),
-  ...(splitLines(guide.actionsText).length > 0 ? { actions: splitLines(guide.actionsText) } : {}),
-})
-
-const createSourceFigurePreview = (figure: DraftSourceFigure) => ({
-  title: figure.title,
-  source: figure.source,
-  ...(figure.sourceUrl ? { sourceUrl: figure.sourceUrl } : {}),
-  ...(figure.citation ? { citation: figure.citation } : {}),
-  ...(figure.notes ? { notes: figure.notes } : {}),
-  ...(figure.imageUrl ? { imageUrl: figure.imageUrl } : {}),
-  ...(figure.altText ? { altText: figure.altText } : {}),
-})
-
-const parsePresetAnswers = (preset: DraftPreset): ModuleAnswers => {
-  const parsedValue = JSON.parse(preset.answersJson || '{}')
-
-  if (!isRecord(parsedValue)) {
-    throw new Error('Preset answers must be a JSON object.')
-  }
-
-  return readModuleAnswers(parsedValue)
-}
-
-const parsePresetAnswersSafely = (preset: DraftPreset): ModuleAnswers => {
-  try {
-    return parsePresetAnswers(preset)
-  } catch {
-    return {}
-  }
-}
-
-const createPresetPreview = (preset: DraftPreset) => ({
-  id: preset.id,
-  title: preset.title,
-  ...(preset.description ? { description: preset.description } : {}),
-  answers: parsePresetAnswersSafely(preset),
-}) satisfies WorkflowPreset
-
-const workflowPreview = computed<ClinicalWorkflow>(() => ({
-  id: draft.id,
-  language: authoringLocale.value,
-  ...(draft.slug ? { slug: draft.slug } : {}),
-  title: draft.title,
-  ...(draft.description ? { description: draft.description } : {}),
-  overview: draft.overview,
-  sections: draft.sections.map((section) => ({
-    id: section.id,
-    title: section.title,
-    ...(section.description ? { description: section.description } : {}),
-    fields: section.fields.map(createFieldPreview) as ModuleField[],
-  })),
-  redFlags: draft.redFlags.map(createClinicalItemPreview),
-  differentials: draft.differentials.map(createClinicalItemPreview),
-  workup: draft.workup.map(createClinicalItemPreview),
-  ...(draft.quickGuides.length > 0
-    ? { quickGuides: draft.quickGuides.map(createGuidePreview) }
-    : {}),
-  ...(draft.sourceFigures.length > 0
-    ? { sourceFigures: draft.sourceFigures.map(createSourceFigurePreview) }
-    : {}),
-  ...(draft.presets.length > 0 ? { presets: draft.presets.map(createPresetPreview) } : {}),
-  hpiTemplate: draft.hpiTemplate,
-}))
+const workflowPreview = computed<ClinicalWorkflow>(() =>
+  createWorkflowPreview(draft, authoringLocale.value),
+)
 
 const formattedPreview = computed(() => JSON.stringify(workflowPreview.value, null, 2))
 const previewSession = ref<WorkflowSession>(createWorkflowSession(workflowPreview.value))
@@ -1064,6 +693,7 @@ const validationMessages = computed(() => {
         <h1>{{ t('builder.title') }}</h1>
         <p>{{ t('builder.description') }}</p>
         <button
+          data-testid="save-workflow-button"
           class="primary-action compact-action"
           type="button"
           :disabled="isSavingWorkflow"
@@ -1118,6 +748,7 @@ const validationMessages = computed(() => {
               <label class="builder-field">
                 <span>{{ t('builder.workflowTitle') }}</span>
                 <input
+                  data-testid="workflow-title-input"
                   class="text-input"
                   type="text"
                   :value="draft.title"
@@ -1132,6 +763,7 @@ const validationMessages = computed(() => {
                   <FieldHint :message="t('builder.workflowIdHint')" />
                 </span>
                 <input
+                  data-testid="workflow-id-input"
                   class="text-input"
                   type="text"
                   :value="draft.id"
@@ -1146,6 +778,7 @@ const validationMessages = computed(() => {
                   <FieldHint :message="t('builder.workflowSlugHint')" />
                 </span>
                 <input
+                  data-testid="workflow-slug-input"
                   v-model="draft.slug"
                   class="text-input"
                   type="text"
@@ -1164,12 +797,17 @@ const validationMessages = computed(() => {
 
               <label class="builder-field full-span">
                 <span>{{ t('builder.workflowDescription') }}</span>
-                <textarea v-model="draft.description" class="text-input builder-textarea" />
+                <textarea
+                  data-testid="workflow-description-input"
+                  v-model="draft.description"
+                  class="text-input builder-textarea"
+                />
               </label>
 
               <label class="builder-field full-span">
                 <span>{{ t('builder.workflowOverview') }}</span>
                 <textarea
+                  data-testid="workflow-overview-input"
                   v-model="draft.overview"
                   class="text-input builder-textarea"
                   :placeholder="t('builder.workflowOverviewPlaceholder')"
@@ -1187,13 +825,19 @@ const validationMessages = computed(() => {
 
               <div class="builder-inline-add">
                 <input
+                  data-testid="new-section-title-input"
                   v-model="newSectionTitle.value"
                   class="text-input"
                   type="text"
                   :placeholder="t('builder.sectionPlaceholder')"
                   @keyup.enter="addSection"
                 />
-                <button class="secondary-action" type="button" @click="addSection">
+                <button
+                  data-testid="add-section-button"
+                  class="secondary-action"
+                  type="button"
+                  @click="addSection"
+                >
                   {{ t('builder.addSection') }}
                 </button>
               </div>
@@ -1248,7 +892,12 @@ const validationMessages = computed(() => {
                     {{ t('builder.emptyFields') }}
                   </p>
 
-                  <div v-for="field in section.fields" :key="field.uid" class="builder-field-row">
+                  <div
+                    v-for="field in section.fields"
+                    :key="field.uid"
+                    class="builder-field-row"
+                    data-testid="builder-field-row"
+                  >
                     <select v-model="field.type" class="text-input">
                       <option v-for="fieldType in fieldTypes" :key="fieldType" :value="fieldType">
                         {{ fieldTypeLabel(fieldType) }}
@@ -1533,6 +1182,7 @@ const validationMessages = computed(() => {
 
                 <div class="field-add-row">
                   <input
+                    data-testid="new-field-label-input"
                     class="text-input"
                     type="text"
                     :value="getNewField(section.uid).label"
@@ -1540,6 +1190,7 @@ const validationMessages = computed(() => {
                     @input="updateFieldLabel(getNewField(section.uid), $event)"
                   />
                   <input
+                    data-testid="new-field-key-input"
                     class="text-input"
                     type="text"
                     :value="getNewField(section.uid).key"
@@ -1547,12 +1198,21 @@ const validationMessages = computed(() => {
                     :title="t('builder.fieldKeyHint')"
                     @input="updateFieldKey(getNewField(section.uid), $event)"
                   />
-                  <select v-model="getNewField(section.uid).type" class="text-input">
+                  <select
+                    data-testid="new-field-type-select"
+                    v-model="getNewField(section.uid).type"
+                    class="text-input"
+                  >
                     <option v-for="fieldType in fieldTypes" :key="fieldType" :value="fieldType">
                       {{ fieldTypeLabel(fieldType) }}
                     </option>
                   </select>
-                  <button class="secondary-action" type="button" @click="addField(section)">
+                  <button
+                    data-testid="add-field-button"
+                    class="secondary-action"
+                    type="button"
+                    @click="addField(section)"
+                  >
                     {{ t('builder.addField') }}
                   </button>
                 </div>
@@ -1847,6 +1507,7 @@ const validationMessages = computed(() => {
                 <FieldHint :message="t('builder.generatedNoteHint')" />
               </span>
               <textarea
+                data-testid="hpi-template-input"
                 ref="hpiTemplateInput"
                 v-model="draft.hpiTemplate"
                 class="text-input builder-template-textarea"
